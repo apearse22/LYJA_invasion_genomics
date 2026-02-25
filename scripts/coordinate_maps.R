@@ -10,7 +10,7 @@
 
 library(ggplot2)
 library(dplyr)
-library(ggmap) # need to cite in final paper
+library(ggmap)
 library(maps)
 library(readr)
 library(gridExtra)
@@ -75,7 +75,7 @@ native_coordinates <- coordinates %>%
   filter(Invaded == "N")
 
 
-### plotting invaded coordinates - should add north arrow using illustrator? idk how to make them cute
+### plotting invaded coordinates
 
 invaded_coordinates_mapped <- invaded_basemap +
   geom_point(invaded_coordinates, mapping=aes(x=Approximate.Longitude, y=Approximate.Latitude, color = Collection.Year), 
@@ -95,7 +95,8 @@ native_coordinates_mapped <- native_basemap +
   scale_color_viridis_c(limits = range(coordinates$Collection.Year)) +
   labs(color = "Collection Year") # does not plot 7 samples
  
-### stacking plots? could be good for a figure idk
+
+### stacking plots 
 
 stacked.maps <- ggarrange(invaded_coordinates_mapped, native_coordinates_mapped, ncol = 2, common.legend = TRUE, legend = "right")
 
