@@ -1,0 +1,13 @@
+## References and mapping to references
+
+## To generate de novo reference with CAPTUS: 
+
+captus assemble -r ../pseudoRef/fastq -o cap_out --tmp_dir tmp/ --threads 160 --concurrent 8 --overwrite
+
+captus extract -a cap_out/ --threads 12 -c --cl_min_samples 15 --cl_tmp_dir tmp
+
+captus align -e 03_extractions --threads 48 --disable_codon_align
+
+
+## To map reads to references: 
+
