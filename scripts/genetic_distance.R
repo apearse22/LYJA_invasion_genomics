@@ -19,9 +19,9 @@ samples.native <- c("SRR29127787", "SRR29127784", "SRR29127767","SRR29127785","S
                     "SRR29127782","SRR29127788","SRR29127783","SRR29127776","SRR29127775","SRR29127771","SRR29127764","SRR29127766",
                     "SRR29127773","SRR29127781","SRR29127778","SRR29127765", "SRR29127793", "SRR29127772")
 
-popmap <- read.csv("data/popmap_updatedcoords.csv")
-transcriptome <- read.vcfR("data/one_snp_per_locus_thinned.vcf")
-captus <- read.vcfR("data/captus_0.5mising.maf0.5.thinned.vcf")
+popmap <- read.csv("files/popmap_updatedcoords.csv")
+transcriptome <- read.vcfR("files/txm.50missing.CTmarked.recalc.maf0.05.thinned.vcf")
+captus <- read.vcfR("files/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
 
 
 ######################################### Creating population maps of invaded and native samples ####################################
@@ -48,13 +48,13 @@ popmap.nat.mat <- as.data.frame(popmap.nat, row.names = popmap.nat$Ind)
 # Invaded samples
 
 popmap.inv.coords <- popmap.inv.mat %>% 
-  select(Approx..Latitude, Approx..Longitude) %>% 
+  dplyr::select(Approx..Latitude, Approx..Longitude) %>% 
   na.omit()
 
 # Native samples
 
 popmap.nat.coords <- popmap.nat.mat %>% 
-  select(Approx..Latitude, Approx..Longitude) %>% 
+  dplyr::select(Approx..Latitude, Approx..Longitude) %>% 
   na.omit()
 
 ### Collection year
@@ -62,12 +62,12 @@ popmap.nat.coords <- popmap.nat.mat %>%
 # Invaded samples
 
 popmap.inv.years <- popmap.inv.mat %>% 
-  select(Collection.Year) 
+  dplyr::select(Collection.Year) 
 
 # Native samples
 
 popmap.nat.years <- popmap.nat.mat %>% 
-  select(Collection.Year)
+  dplyr::select(Collection.Year)
 
 
 ############################################################ Creating genind objects #############################################
@@ -79,7 +79,7 @@ transcriptome.genind <- vcfR2genind(transcriptome, ploidy = 4)
 transcriptome.genind.inv <- transcriptome.genind[!indNames(transcriptome.genind) %in% samples.native]
 transcriptome.genind.nat <- transcriptome.genind[indNames(transcriptome.genind) %in% samples.native & indNames(transcriptome.genind) != "SRR29127772"]
 
-# SRR...72 only needs to be removed for the geographic isolation bc no coordinates, it's fine to include for temporal isolation. making a new genind
+# SRR...72 only needs to be removed for the geographic isolation because it has no coordinates, it's fine to include for temporal isolation. making a new genind
 
 transcriptome.genind.nat.temp <- transcriptome.genind[indNames(transcriptome.genind) %in% samples.native]
 
