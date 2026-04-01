@@ -19,10 +19,10 @@ library(ggpubr)
 
 ################################################### Reading in files and shared variables #########################################
 
-popmap <- read.csv("data/popmap_updatedcoords.csv")
+popmap <- read.csv("files/popmap_updatedcoords.csv")
 
-transcriptome.vcf <- read.vcfR("data/one_snp_per_locus_thinned.vcf")
-captus.vcf <- read.vcfR("data/captus_0.5mising.maf0.5.thinned.vcf")
+transcriptome.vcf <- read.vcfR("files/txm.50missing.CTmarked.recalc.maf0.05.thinned.vcf")
+captus.vcf <- read.vcfR("files/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
 
 ### Creating genind objects
 
