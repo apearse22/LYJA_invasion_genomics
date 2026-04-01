@@ -16,10 +16,10 @@ library(reshape2)
 
 ### Reading in files
 
-envs <- read.delim("data/LYJA_bioclim1-2-13-14-15")
-popmap <- read.delim("data/popmap_states.txt", sep="", header=FALSE)
-LYJA.thinned.vcf <- read.vcfR("data/captus_0.5mising.maf0.5.thinned.vcf")
-si <- read.csv("data/si_table.csv")
+envs <- read.delim("files/LYJA_bioclim1-2-13-14-15")
+popmap <- read.delim("files/popmap_states.txt", sep="", header=FALSE)
+LYJA.thinned.vcf <- read.vcfR("files/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
+si <- read.csv("files/si_table.csv")
 
 ### Constructing genind oject
 
@@ -36,7 +36,7 @@ LYJA.gid.impute <- tab(LYJA.gid.inv, freq=TRUE, NA.method="mean") # matrix conta
 
 ###################################################### PCA ################################################
 
-LYJA.gid.impute.PCA <- dudi.pca(LYJA.gid.impute, center=TRUE, scale=FALSE, nf=NA)
+LYJA.gid.impute.PCA <- dudi.pca(LYJA.gid.impute, center=TRUE, scale=FALSE, scannf=FALSE, nf = 50)
 LYJA.gid.impute.PCA.df <- LYJA.gid.impute.PCA$li
 LYJA.gid.impute.PCA.df$sample <- row.names(LYJA.gid.impute.PCA.df)
 colnames(popmap) <- c("sample", "location")
@@ -188,9 +188,11 @@ ggplot(data = Ho.GEA.popmap.year, mapping = aes(x = Collection.Year, y = Ho, col
 
 ### Running statistical models
 
+# With interaction
 Ho.GEA.lm <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = Ho.GEA.popmap.year)
 summary(Ho.GEA.lm) 
 
+# Without interaction
 Ho.GEA.noint.lm <- lm(Ho ~ Collection.Year + Invaded, data = Ho.GEA.popmap.year)
 summary(Ho.GEA.noint.lm) 
 
