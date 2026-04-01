@@ -22,7 +22,7 @@ library(dplyr)
 
 envs <- read.csv("sample_envs.csv")
 popmap <- read.delim("data/popmap_states.txt", sep="", header=FALSE)
-LYJA.thinned.vcf <- read.vcfR("data/captus_0.5mising.maf0.5.thinned.vcf")
+LYJA.thinned.vcf <- read.vcfR("data/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
 si <- read.csv("data/si_table.csv")
 
 ### Constructing genind oject
@@ -71,8 +71,8 @@ LYJA.pRDA <- rda(LYJA.gid.impute ~ + BIO14 + BIO2 + BIO15 + BIO13 + BIO1 + Condi
 summary(eigenvals(LYJA.pRDA, model = "constrained"))
 screeplot(LYJA.pRDA) # We see that majority of variation is seen in RDA1, RDA2, and RDA3
 
-signif.full <- anova.cca(LYJA.pRDA, parallel = getOption("mc.cores"))
-signif.full
+#signif.full <- anova.cca(LYJA.pRDA, parallel = getOption("mc.cores"))
+#signif.full
 
 # Let's plot the pRDA results, with both SNPs (red) and individuals (black) on the same plot
 # blue vectors are the environmental predictors 
