@@ -18,16 +18,15 @@ library(dartR)
 library(dartR.base)
 library(dplyr)
 
+
+library(adegenet)
+
 ### Reading in files
 
 envs <- read.csv("sample_envs.csv")
 popmap <- read.delim("data/popmap_states.txt", sep="", header=FALSE)
 LYJA.thinned.vcf <- read.vcfR("data/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
 si <- read.csv("data/si_table.csv")
-
-### Constructing genind oject
-
-LYJA.gid <- vcfR2genind(LYJA.thinned.vcf, ploidy = 4)
 
 # Here, we are subsetting our genind to only include invaded samples
 samples.native <- c("SRR29127787", "SRR29127784", "SRR29127767","SRR29127785","SRR29127770","SRR29127789","SRR29127769","SRR29127786","SRR29127774","SRR29127777","SRR29127780",
