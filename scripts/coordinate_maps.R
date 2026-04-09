@@ -14,6 +14,7 @@ library(ggmap)
 library(maps)
 library(readr)
 library(gridExtra)
+library(ggspatial)
 
 ######################################################### creating basemaps #####################################################
 
@@ -59,29 +60,62 @@ native_basemap <- ggplot(native, aes(long, lat, group=group)) +
   ylab('Longitude (\u00B0)') 
 
 
+
+################ playing around with doing the whole continent and subsetting by xlim and ylim
+
+us_basemap <- ggplot(states_map, aes(long, lat, group=group)) +
+  geom_polygon(fill='white', color='black') +
+  coord_fixed(1.3) +
+  theme_classic() +
+  ylab('Latitude (\u00B0)') +
+  xlab('Longitude (\u00B0)') +
+  coord_sf(xlim = c(-96, -79), ylim = c(25, 36.5)) 
+  #annotation_scale(location = "bl", unit_category = "metric", width_hint = 0.1, plot_unit = "km") 
+  #scalebar(location = "bottomleft", dist_unit = "km", transform = TRUE,
+         #  model = "WGS84")
+
 ############################################################ plotting coordinates #####################################################
 
 
 ### getting coordinates from supplmental information table 
 
-coordinates <- read.csv("files/lyja_si_coordinates.csv")
-coordinates <- coordinates %>% 
-  mutate(Approximate.Latitude = as.numeric(Approximate.Latitude)) %>% 
-  mutate(Approximate.Longitude = as.numeric(Approximate.Longitude))
 
-invaded_coordinates <- coordinates %>% 
+si_table <- read.csv("files/popmap_updatedcoords.csv")
+
+#coordinates <- si_table %>% 
+  dplyr::select(Approx..Latitude, Approx..Longitude)
+
+#coordinates <- read.csv("files/lyja_si_coordinates.csv")
+
+si_table <- si_table %>% 
+  mutate(Approx..Latitude = as.numeric(Approx..Latitude)) %>% 
+  mutate(Approx..Longitude = as.numeric(Approx..Longitude))
+
+invaded_coordinates <- si_table %>% 
   filter(Invaded == "Y")
-native_coordinates <- coordinates %>% 
+
+native_coordinates <- si_table %>% 
   filter(Invaded == "N")
 
 
 ### plotting invaded coordinates
 
-invaded_coordinates_mapped <- invaded_basemap +
-  geom_point(invaded_coordinates, mapping=aes(x=Approximate.Longitude, y=Approximate.Latitude, color = Collection.Year), 
-             group="Abbreviation", size= 3) +
-  scale_color_viridis_c(limits = range(coordinates$Collection.Year)) +
-  labs(color = "Collection Year") 
+colnames(invaded_coordinates) <- c("Ind", "Herbarium", "Voucher.Identifier", "Location", "Lat", "Long", "Invaded", "Collection.Year",
+                                   "Temporal_Group", "Specimen.Comments", "total...bases", "Specimen.Link")
+
+
+myCRS1 <- CRS("WGS84")
+crs(invaded_coordinates$Lat, invaded_coordinates$Long) <- myCRS1
+
+invaded_coordinates_mapped <- us_basemap +
+  geom_spatial_point(invaded_coordinates, mapping=aes(x=Long, y=Lat, color = Collection.Year), 
+             group="Abbreviation", size= 3, crs = "WGS84") +
+  scale_color_viridis_c(limits = range(invaded_coordinates$Collection.Year)) +
+  labs(color = "Collection Year") +
+  annotation_scale(plot_unit = "km", ) +
+  theme(panel.background = element_rect(fill = "aliceblue")) +
+  coord_sf(xlim = c(-96, -79), ylim = c(25, 36.5), crs = "WGS84") 
+
 
 
 ggsave("invaded_sample_coords.pdf", width = 8, height = 5.5)
