@@ -15,6 +15,8 @@ library(maps)
 library(readr)
 library(gridExtra)
 library(ggspatial)
+library(terra)
+library(sf)
 
 ######################################################### creating basemaps #####################################################
 
@@ -82,7 +84,7 @@ us_basemap <- ggplot(states_map, aes(long, lat, group=group)) +
 
 si_table <- read.csv("files/popmap_updatedcoords.csv")
 
-#coordinates <- si_table %>% 
+coordinates <- si_table %>% 
   dplyr::select(Approx..Latitude, Approx..Longitude)
 
 #coordinates <- read.csv("files/lyja_si_coordinates.csv")
@@ -95,38 +97,70 @@ invaded_coordinates <- si_table %>%
   filter(Invaded == "Y")
 
 native_coordinates <- si_table %>% 
-  filter(Invaded == "N")
+  filter(Invaded == "N") %>% 
+  na.omit()
 
+
+# CONVERT TO 'sf' OBJECTS: 
+# This is the magic step that fixes your scale bar. It tells R these are 
+# geographic coordinates (crs = 4326, which is WGS84).
+invaded_sf <- st_as_sf(invaded_coordinates, coords = c("Approx..Longitude", "Approx..Latitude"), crs = 4326)
+
+# Assuming native_coordinates keeps the original column names
+native_sf <- st_as_sf(native_coordinates, coords = c("Approx..Longitude", "Approx..Latitude"), crs = 4326)
 
 ### plotting invaded coordinates
 
-colnames(invaded_coordinates) <- c("Ind", "Herbarium", "Voucher.Identifier", "Location", "Lat", "Long", "Invaded", "Collection.Year",
-                                   "Temporal_Group", "Specimen.Comments", "total...bases", "Specimen.Link")
+######################################################### 
+# 2. Creating Basemaps & Plotting 
+#########################################################
 
+# Convert map boundaries directly to sf objects instead of map_data dataframes
+states_map_sf <- st_as_sf(maps::map("state", plot = FALSE, fill = TRUE))
+country_map_sf <- st_as_sf(maps::map("world", plot = FALSE, fill = TRUE))
 
-myCRS1 <- CRS("WGS84")
-crs(invaded_coordinates$Lat, invaded_coordinates$Long) <- myCRS1
+# Find the global min and max years across both datasets
+global_year_limits <- range(c(invaded_sf$Collection.Year, native_sf$Collection.Year), na.rm = TRUE)
 
-invaded_coordinates_mapped <- us_basemap +
-  geom_spatial_point(invaded_coordinates, mapping=aes(x=Long, y=Lat, color = Collection.Year), 
-             group="Abbreviation", size= 3, crs = "WGS84") +
-  scale_color_viridis_c(limits = range(invaded_coordinates$Collection.Year)) +
-  labs(color = "Collection Year") +
-  annotation_scale(plot_unit = "km", ) +
+### PLOTTING INVADED RANGE ###
+
+invaded_coordinates_mapped <- ggplot(data = states_map_sf) +
+  geom_sf(fill = 'gray97', color = 'black') +
+  geom_sf(data = invaded_sf, aes(color = Collection.Year), size = 3) +
+  scale_color_viridis_c(limits = global_year_limits) +
+  labs(color = "Collection Year", x = 'Longitude (\u00B0)', y = 'Latitude (\u00B0)') +
+  theme_classic() +
   theme(panel.background = element_rect(fill = "aliceblue")) +
-  coord_sf(xlim = c(-96, -79), ylim = c(25, 36.5), crs = "WGS84") 
+  coord_sf(xlim = c(-96, -79), ylim = c(25, 37), crs = 4326, expand = FALSE) +
+  annotation_scale(location = "bl", width_hint = 0.25) +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         pad_x = unit(0.2, "in"), pad_y = unit(0.2, "in"),
+                         style = north_arrow_fancy_orienteering)
+
+# Save Invaded Map
+ggsave("invaded_sample_coords.pdf", plot = invaded_coordinates_mapped, width = 8, height = 5.5)
 
 
+### PLOTTING NATIVE RANGE ###
 
-ggsave("invaded_sample_coords.pdf", width = 8, height = 5.5)
+# Filter the world map for native regions
+native_basemap_sf <- country_map_sf %>% 
+  filter(ID %in% c("China", "Japan", "Vietnam", "Philippines", "Palau", "Taiwan", "Indonesia", "Mongolia", 
+                   "Laos", "Myanmar", "India", "Thailand", "Burma", "Cambodia", "Malaysia","Bangladesh", 
+                   "North Korea", "South Korea", "Singapore", "Brunei", "Papua New Guinea"))
 
+native_coordinates_mapped <- ggplot(data = native_basemap_sf) +
+  geom_sf(fill = 'gray97', color = 'black') +
+  geom_sf(data = native_sf, aes(color = Collection.Year), size = 3) +
+  scale_color_viridis_c(limits = global_year_limits) +
+  labs(color = "Collection Year", x = 'Longitude (\u00B0)', y = 'Latitude (\u00B0)') +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "aliceblue")) +
+  coord_sf(xlim = c(95, 143), ylim = c(-11, 40), crs = 4326, expand = FALSE) +
+  annotation_scale(location = "bl", width_hint = 0.25) +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         pad_x = unit(0.2, "in"), pad_y = unit(1, "in"),
+                         style = north_arrow_fancy_orienteering)
 
-### plotting native coordinates
-
-native_coordinates_mapped <- native_basemap +
-  geom_point(native_coordinates, mapping=aes(x=Approximate.Longitude, y=Approximate.Latitude, color = Collection.Year), 
-             group="Abbreviation", size=3) +
-  scale_color_viridis_c(limits = range(coordinates$Collection.Year)) +
-  labs(color = "Collection Year") # does not plot 7 samples
- 
-ggsave("native_samples_coords.pdf", width = 6.5, height = 7)
+# Save Native Map
+ggsave("native_samples_coords.pdf", plot = native_coordinates_mapped, width = 6.5, height = 7)
