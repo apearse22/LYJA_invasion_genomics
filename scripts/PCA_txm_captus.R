@@ -15,6 +15,8 @@ library(dplyr)
 library(viridis)
 library(paletteer)
 library(gghighlight)
+library(adegenet)
+library(poppr)
 
 ### Reading in files
 
@@ -70,44 +72,56 @@ invaded.locs <- c("Florida", "Alabama", "Arkansas", "Georgia", "Louisiana", "Mis
 
 ### Transcriptome
 
-# Collection year - collection year legend disappeared :((
+# Collection year 
 
-pca.transcriptome.collectionyear <- ggplot(pca.transcriptome.df.popmap, 
-                                           aes(Axis1, Axis2, color = as.numeric(Collection.Year), shape = Invaded)) +
-  geom_point(size = 3.5) +
-  geom_point(data = subset(pca.transcriptome.df.popmap, Location %in% invaded.locs), aes(color = as.numeric(Collection.Year))) +
-  gghighlight(Location %in% invaded.locs, unhighlighted_params = list(color = "black", alpha = 1)) +
+pca.txm.df.inv <- filter(pca.transcriptome.df.popmap, Invaded == "Y")
+pca.txm.df.nat <- filter(pca.transcriptome.df.popmap, Invaded == "N")
+
+pca.transcriptome.collectionyear <- ggplot() +
+  geom_point(pca.txm.df.inv, mapping = aes(x = Axis1, y = Axis2, color = as.numeric(Collection.Year)), size = 3, alpha = 0.75) +
+  geom_point(pca.txm.df.nat, mapping = aes(x = Axis1, y = Axis2), color = "black", shape = 17, size = 2) +
   scale_color_viridis_c(limits = range(pca.transcriptome.df.popmap$Collection.Year)) +
   xlab(paste0("PC 1 (", pve.transcriptome[1], "% variation explained)")) +
   ylab(paste0("PC 2 (", pve.transcriptome[2], "% variation explained)")) +
   theme_bw() +
-  labs(color = "Collection Year")
+  labs(color = "Collection Year") +
+  ggtitle("Transcriptome Reference")
 
-#ggsave("transcriptome.collectionyear.pca.pdf", height = 6, width = 8)
+ggsave("transcriptome.collectionyear.pca.pdf", height = 6, width = 8)
+ggsave("transcriptome.collectionyear.pca.png", height = 6, width = 8, dpi = 300)
 
 # Location
 
 pca.transcriptome.location <- ggplot(pca.transcriptome.df.popmap, aes(Axis1, Axis2, color = Location, shape = Invaded)) +
-  geom_point(size = 3) +
+  geom_point(size = 2) +
+  scale_shape_manual(values = c(17, 16)) +
   scale_color_paletteer_d("colorBlindness::paletteMartin") +
   xlab(paste0("PC 1 (", pve.transcriptome[1], "% variation explained)")) +
   ylab(paste0("PC 2 (", pve.transcriptome[2], "% variation explained)")) +
-  ggtitle("Transcriptome") +
+  ggtitle("Transcriptome Reference") +
   theme_bw()
 
-#ggsave("transcriptome.location.pca.pdf", height = 6, width = 8)
+ggsave("transcriptome.location.pca.pdf", height = 6, width = 8)
+ggsave("transcriptome.location.pca.png", height = 6, width = 8, dpi = 300)
 
 ### CAPTUS
 
 # Collection year
+pca.captus.df.inv <- filter(pca.captus.df.popmap, Invaded == "Y")
+pca.captus.df.nat <- filter(pca.captus.df.popmap, Invaded == "N")
 
-pca.captus.collectionyear <- ggplot(pca.captus.df.popmap, aes(Axis1, Axis2, color = Collection.Year, shape = Invaded)) +
-  geom_point(size = 3) +
-  scale_color_viridis() +
+pca.captus.collectionyear <- ggplot() +
+  geom_point(pca.captus.df.inv, mapping = aes(x = Axis1, y = Axis2, color = as.numeric(Collection.Year)), size = 3, alpha = 0.85) +
+  geom_point(pca.captus.df.nat, mapping = aes(x = Axis1, y = Axis2), color = "black", shape = 17, size = 2) +
+  scale_color_viridis_c(limits = range(pca.captus.df.popmap$Collection.Year)) +
   xlab(paste0("PC 1 (", pve.captus[1], "% variation explained)")) +
   ylab(paste0("PC 2 (", pve.captus[2], "% variation explained)")) +
-  ggtitle("CAPTUS") +
-  theme_bw()
+  theme_bw() +
+  labs(color = "Collection Year") +
+  ggtitle("CAPTUS Reference")
+
+ggsave("captus.collectionyear.pca.pdf", height = 6, width = 8)
+ggsave("captus.collectionyear.pca.png", height = 6, width = 8, dpi = 300)
 
 #ggsave("captus.collectionyear.pca.pdf", height = 6, width = 8)
 
@@ -115,20 +129,22 @@ pca.captus.collectionyear <- ggplot(pca.captus.df.popmap, aes(Axis1, Axis2, colo
 
 pca.captus.location <- ggplot(pca.captus.df.popmap, aes(Axis1, Axis2, color = Location, shape = Invaded)) +
   geom_point(size = 3) +
+  scale_shape_manual(values = c(17,16)) +
   scale_color_paletteer_d("colorBlindness::paletteMartin") +
   xlab(paste0("PC 1 (", pve.captus[1], "% variation explained)")) +
   ylab(paste0("PC 2 (", pve.captus[2], "% variation explained)")) +
-  ggtitle("CAPTUS") +
+  ggtitle("CAPTUS Reference") +
   theme_bw()
 
-#ggsave("captus.location.pca.pdf", height = 6, width = 8)
+ggsave("captus.location.pca.pdf", height = 6, width = 8)
+ggsave("captus.location.pca.png", height = 6, width = 8, dpi = 300)
 
 
 
-##################### Creating PCAs exlcuding Pacific Islands (for higher resolution of invaded?) ################
+##################### Creating PCAs exlcuding Pacific Islands (for higher resolution) ################
 
 pacific.islands <- c("SRR29127777", "SRR29127778", "SRR29127780", "SRR29127781", "SRR29127782", "SRR29127782",
-                     "SRR29127775", "SRR29127776") # removes Taiwan, Phillippines, and Palau
+                     "SRR29127775", "SRR29127776") # removes Taiwan, Philippines, and Palau
 
 ### Creating and subsetting new geninds
 
@@ -173,13 +189,13 @@ pca.captus.noPI.df.popmap <- inner_join(pca.captus.noPI.df, popmap)
 
 # Collection Year
 
-pca.transcriptome.noPI.collectionYear <- ggplot(pca.transcriptome.noPI.df.popmap, aes(Axis1, Axis2, color = Collection.Year, shape = Invaded)) +
-  geom_point(size = 3) +
-  scale_color_viridis() +
-  xlab(paste0("PC 1 (", pve.transcriptome.noPI[1], "% variation explained)")) +
-  ylab(paste0("PC 2 (", pve.transcriptome.noPI[2], "% variation explained)")) +
-  ggtitle("Transcriptome") +
-  theme_bw()
+#pca.transcriptome.noPI.collectionYear <- ggplot(pca.transcriptome.noPI.df.popmap, aes(Axis1, Axis2, color = Collection.Year, shape = Invaded)) +
+#  geom_point(size = 3) +
+#  scale_color_viridis() +
+#  xlab(paste0("PC 1 (", pve.transcriptome.noPI[1], "% variation explained)")) +
+#  ylab(paste0("PC 2 (", pve.transcriptome.noPI[2], "% variation explained)")) +
+#  ggtitle("Transcriptome") +
+#  theme_bw()
 
 #ggsave("transcriptome.noPI.collectionyear.pca.pdf", width = 8, height = 6)
 
@@ -187,25 +203,28 @@ pca.transcriptome.noPI.collectionYear <- ggplot(pca.transcriptome.noPI.df.popmap
 
 pca.transcriptome.noPI.location <- ggplot(pca.transcriptome.noPI.df.popmap, aes(Axis1, Axis2, color = Location, shape = Invaded)) +
   geom_point(size = 3) +
+  scale_shape_manual(values = c(17,16)) +
   scale_color_paletteer_d("colorBlindness::paletteMartin") +
   xlab(paste0("PC 1 (", pve.transcriptome.noPI[1], "% variation explained)")) +
   ylab(paste0("PC 2 (", pve.transcriptome.noPI[2], "% variation explained)")) +
-  ggtitle("Transcriptome") +
+  ggtitle("Transcriptome Reference") +
   theme_bw()
 
-#ggsave("transcriptome.noPI.location.pca.pdf", width = 8, height = 6)
+ggsave("transcriptome.noPI.location.pca.pdf", width = 8, height = 6)
+ggsave("transcriptome.noPI.location.pca.png", width = 8, height = 6, dpi = 300)
+
 
 ### CAPTUS
 
 # Collection year
 
-pca.captus.noPI.location.pca <- ggplot(pca.captus.noPI.df.popmap, aes(Axis1, Axis2, color = Collection.Year, shape = Invaded)) +
-  geom_point(size = 3) +
-  scale_color_viridis() +
-  xlab(paste0("PC 1 (", pve.captus.noPI[1], "% variation explained)")) +
-  ylab(paste0("PC 2 (", pve.captus.noPI[2], "% variation explained)")) +
-  ggtitle("CAPTUS") +
-  theme_bw()
+#pca.captus.noPI.location.pca <- ggplot(pca.captus.noPI.df.popmap, aes(Axis1, Axis2, color = Collection.Year, shape = Invaded)) +
+#  geom_point(size = 3) +
+#  scale_color_viridis() +
+#  xlab(paste0("PC 1 (", pve.captus.noPI[1], "% variation explained)")) +
+#  ylab(paste0("PC 2 (", pve.captus.noPI[2], "% variation explained)")) +
+#  ggtitle("CAPTUS") +
+#  theme_bw()
 
 #ggsave("captus.noPI.collectionyear.pca.pdf", width = 8, height = 6)
 
@@ -213,13 +232,16 @@ pca.captus.noPI.location.pca <- ggplot(pca.captus.noPI.df.popmap, aes(Axis1, Axi
 
 pca.captus.noPI.pca <- ggplot(pca.captus.noPI.df.popmap, aes(Axis1, Axis2, color = Location, shape = Invaded)) +
   geom_point(size = 3) +
+  scale_shape_manual(values = c(17,16)) +
   scale_color_paletteer_d("colorBlindness::paletteMartin") +
   xlab(paste0("PC 1 (", pve.captus.noPI[1], "% variation explained)")) +
   ylab(paste0("PC 2 (", pve.captus.noPI[2], "% variation explained)")) +
-  ggtitle("CAPTUS") +
+  ggtitle("CAPTUS Reference") +
   theme_bw()
 
-#ggsave("captus.noPI.location.pca.pdf", width = 8, height = 6)
+ggsave("captus.noPI.location.pca.pdf", width = 8, height = 6)
+ggsave("captus.noPI.location.pca.png", width = 8, height = 6, dpi = 300)
+
 
 
 
