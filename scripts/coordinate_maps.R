@@ -2,7 +2,7 @@
 
 # creating map of sample locations 
 # code developed by Abby Pearse, Jessie Pelosi
-# last updated: 2/2/26
+# last updated: 04/07/26
 
 ##############################################
 
@@ -14,6 +14,7 @@ library(ggmap)
 library(maps)
 library(readr)
 library(gridExtra)
+library(ggspatial)
 
 ######################################################### creating basemaps #####################################################
 
@@ -29,10 +30,7 @@ invaded <- states_map %>%
            region == "texas" |
            region == "mississippi" |
            region == "louisiana" |
-           region == "oklahoma" |
-           region == "north carolina" |
-           region == "tennessee" |
-           region == "virginia") # no samples in oklahoma, just for aesthetic purposes
+           region == "oklahoma") # no samples in oklahoma, just for aesthetic purposes
 
 invaded_basemap <- ggplot(invaded, aes(long, lat, group=group)) +
   geom_polygon(fill='gray97', color='black') +
@@ -62,32 +60,65 @@ native_basemap <- ggplot(native, aes(long, lat, group=group)) +
   ylab('Longitude (\u00B0)') 
 
 
+
+################ playing around with doing the whole continent and subsetting by xlim and ylim
+
+us_basemap <- ggplot(states_map, aes(long, lat, group=group)) +
+  geom_polygon(fill='white', color='black') +
+  coord_fixed(1.3) +
+  theme_classic() +
+  ylab('Latitude (\u00B0)') +
+  xlab('Longitude (\u00B0)') +
+  coord_sf(xlim = c(-96, -79), ylim = c(25, 36.5)) 
+  #annotation_scale(location = "bl", unit_category = "metric", width_hint = 0.1, plot_unit = "km") 
+  #scalebar(location = "bottomleft", dist_unit = "km", transform = TRUE,
+         #  model = "WGS84")
+
 ############################################################ plotting coordinates #####################################################
 
 
 ### getting coordinates from supplmental information table 
 
-coordinates <- read.csv("LYJA_invasion_genomics/files/lyja_si_coordinates.csv")
-coordinates <- coordinates %>% 
-  mutate(Approximate.Latitude = as.numeric(Approximate.Latitude)) %>% 
-  mutate(Approximate.Longitude = as.numeric(Approximate.Longitude))
 
-invaded_coordinates <- coordinates %>% 
+si_table <- read.csv("files/popmap_updatedcoords.csv")
+
+#coordinates <- si_table %>% 
+  dplyr::select(Approx..Latitude, Approx..Longitude)
+
+#coordinates <- read.csv("files/lyja_si_coordinates.csv")
+
+si_table <- si_table %>% 
+  mutate(Approx..Latitude = as.numeric(Approx..Latitude)) %>% 
+  mutate(Approx..Longitude = as.numeric(Approx..Longitude))
+
+invaded_coordinates <- si_table %>% 
   filter(Invaded == "Y")
-native_coordinates <- coordinates %>% 
+
+native_coordinates <- si_table %>% 
   filter(Invaded == "N")
 
 
 ### plotting invaded coordinates
 
-invaded_coordinates_mapped <- invaded_basemap +
-  geom_point(invaded_coordinates, mapping=aes(x=Approximate.Longitude, y=Approximate.Latitude, color = Collection.Year), 
-             group="Abbreviation", size= 3) +
-  scale_color_viridis_c(limits = range(coordinates$Collection.Year)) +
-  labs(color = "Collection Year") 
-  #geom_segment(aes(x=-78, y=30, xend=-78, yend=32), arrow=arrow(), size=1) +
-  #annotate("text", x = -77.5, y = 32, label = "N", color = 'black', size = 5)
-  # does not plot a 1940 Florida Sample
+colnames(invaded_coordinates) <- c("Ind", "Herbarium", "Voucher.Identifier", "Location", "Lat", "Long", "Invaded", "Collection.Year",
+                                   "Temporal_Group", "Specimen.Comments", "total...bases", "Specimen.Link")
+
+
+myCRS1 <- CRS("WGS84")
+crs(invaded_coordinates$Lat, invaded_coordinates$Long) <- myCRS1
+
+invaded_coordinates_mapped <- us_basemap +
+  geom_spatial_point(invaded_coordinates, mapping=aes(x=Long, y=Lat, color = Collection.Year), 
+             group="Abbreviation", size= 3, crs = "WGS84") +
+  scale_color_viridis_c(limits = range(invaded_coordinates$Collection.Year)) +
+  labs(color = "Collection Year") +
+  annotation_scale(plot_unit = "km", ) +
+  theme(panel.background = element_rect(fill = "aliceblue")) +
+  coord_sf(xlim = c(-96, -79), ylim = c(25, 36.5), crs = "WGS84") 
+
+
+
+ggsave("invaded_sample_coords.pdf", width = 8, height = 5.5)
 
 
 ### plotting native coordinates
@@ -98,84 +129,4 @@ native_coordinates_mapped <- native_basemap +
   scale_color_viridis_c(limits = range(coordinates$Collection.Year)) +
   labs(color = "Collection Year") # does not plot 7 samples
  
-
-### stacking plots 
-
-stacked.maps <- ggarrange(invaded_coordinates_mapped, native_coordinates_mapped, ncol = 1, common.legend = TRUE, legend = "right")
-
-
-## Adding points from GBIF to look at the progression of the invasion over time
-
-library(rgbif)
-
-gbif_occs <- occ_data(scientificName = "Lygodium japonicum", limit = 10000, continent = "north_america", year = '1900, 1950')
-gbif_occs.df <- gbif_occs$data
-gbif_occs_earlyInv <- gbif_occs.df %>% 
-  filter(decimalLongitude < 0)
-
-gbif_occs <- occ_data(scientificName = "Lygodium japonicum", limit = 10000, continent = "north_america", year = '1950, 1975')
-gbif_occs.df <- gbif_occs$data
-gbif_occs_MidInv <- gbif_occs.df %>% 
-  filter(decimalLongitude < 0)
-
-gbif_occs <- occ_data(scientificName = "Lygodium japonicum", limit = 10000, continent = "north_america", year = '1975, 2000')
-gbif_occs.df <- gbif_occs$data
-gbif_occs_lateMidInv <- gbif_occs.df %>% 
-  filter(decimalLongitude < 0)
-
-gbif_occs <- occ_data(scientificName = "Lygodium japonicum", limit = 10000, continent = "north_america", year = '2000, 2025')
-gbif_occs.df <- gbif_occs$data
-gbif_occs_lateInv <- gbif_occs.df %>% 
-  filter(decimalLongitude < 0)
-  
-# early invasion 
-early_invasion_map <- invaded_basemap +
-  geom_point(gbif_occs_earlyInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  xlim(-110, -75) + ylim(25, 38) + ggtitle("1900-1950")
-
-early_invasion_map
-
-# early mid-invasion 
-Mid_invasion_map <- invaded_basemap +
-  geom_point(gbif_occs_earlyInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  geom_point(gbif_occs_earlyMidInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  geom_point(gbif_occs_MidInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  xlim(-110, -75) + ylim(25, 38) + ggtitle("1950-1975")
-
-Mid_invasion_map
-
-# Late mid invasion 
-lateMid_invasion_map <- invaded_basemap +
-  geom_point(gbif_occs_earlyInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  geom_point(gbif_occs_earlyMidInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  geom_point(gbif_occs_MidInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  geom_point(gbif_occs_lateMidInv, mapping = aes(x =decimalLongitude, y = decimalLatitude),
-             group="Abbreviation", size= 2, color = "gray32") +
-  xlim(-110, -75) + ylim(25, 38) + ggtitle("1975-2000")
-
-lateMid_invasion_map
-
-# Late invasion 
-late_invasion_map <- invaded_basemap +
-  geom_point(gbif_occs_earlyInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  geom_point(gbif_occs_earlyMidInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  geom_point(gbif_occs_MidInv, mapping=aes(x=decimalLongitude, y=decimalLatitude), 
-             group="Abbreviation", size= 2, color = "gray32") +
-  geom_point(gbif_occs_lateMidInv, mapping = aes(x =decimalLongitude, y = decimalLatitude),
-             group="Abbreviation", size= 2, color = "gray32") +
-  geom_point(gbif_occs_lateInv, mapping = aes(x =decimalLongitude, y = decimalLatitude),
-             group="Abbreviation", size= 2, color = "gray32") +
-  xlim(-110, -75) + ylim(25, 38) + ggtitle("2000-2025")
-
-late_invasion_map
-
-grid.arrange(early_invasion_map, Mid_invasion_map, lateMid_invasion_map, late_invasion_map)
+ggsave("native_samples_coords.pdf", width = 6.5, height = 7)

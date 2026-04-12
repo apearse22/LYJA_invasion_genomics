@@ -18,10 +18,13 @@ library(psych)
 library(ggplot2)
 library(ggfortify)
 library(dplyr)
+library(patchwork)
 
 ### Reading in files
 
-lyja_si <- read.csv("data/lyja_si_coordinates.csv")
+lyja_si <- read.csv("files/lyja_si_coordinates.csv")
+clim_list <- list.files("files/GEA_files/bioclim/wc2.1_30s_bio/", pattern=".tif", full.names = TRUE)
+
 
 ################################ Cleaning dataframes / generating coordinates ###################################
 
@@ -62,7 +65,6 @@ reprojected_map <- sf::st_transform(countries, "WGS84")
 
 ### Cleaning data
 
-clim_list <- list.files("data/GEA_files/bioclim/wc2.1_30s_bio/", pattern=".tif", full.names = TRUE)
 clim <- raster::stack(clim_list)
 
 conditions_occ <- extract(clim, lyja_lat_long)
@@ -126,7 +128,7 @@ bio1_plot <- ggplot() +
   scale_y_continuous(limits = c(25, 37), expand = c(0,0)) +
   xlab('Approximate Longitude') +
   ylab('Approximate Latitude') +
-  ggtitle("Annual Mean Temperature (C)") +
+  ggtitle("Bioclim 1: Annual Mean Temperature (C)") +
   labs(fill = "Annual Mean Temperature (C)")
   
 ### Bioclim #2: Mean Diurnal Range
@@ -143,7 +145,7 @@ bio2_plot <- ggplot() +
   scale_y_continuous(limits = c(25, 37), expand = c(0,0)) +
   xlab('Approximate Longitude') +
   ylab('Approximate Latitude') +
-  ggtitle("Mean Diurnal Range (C)") +
+  ggtitle("Bioclim 2: Mean Diurnal Range (C)") +
   labs(fill = "Mean Diurnal Range (C)")
   
 ### Bioclim #3: Isothermality
@@ -304,7 +306,7 @@ bio11_plot <- ggplot() +
   labs(fill = "Mean Temperature of Coldest Quarter (C)")
 
 
-### Bioclim #12: Annual Precipitation
+### Bioclim #12: Annual Precipitation - flip colors
 
 bio12_plot <- ggplot() +
   geom_raster(data = bio12, aes(x, y, fill = wc2.1_30s_bio_12)) +
@@ -335,7 +337,7 @@ bio13_plot <- ggplot() +
   scale_y_continuous(limits = c(25, 37), expand = c(0,0)) +
   xlab('Approximate Longitude') +
   ylab('Approximate Latitude') +
-  ggtitle("Precipitation of Wettest Month (mm)") +
+  ggtitle("Bioclim 13: Precipitation of Wettest Month (mm)") +
   labs(fill = "Precipitation of Wettest Month (mm)")
 
 ### Bioclim #14: Precipitation of Driest Month
@@ -352,7 +354,7 @@ bio14_plot <- ggplot() +
   scale_y_continuous(limits = c(25, 37), expand = c(0,0)) +
   xlab('Approximate Longitude') +
   ylab('Approximate Latitude') +
-  ggtitle("Precipitation of Driest Month (mm)") +
+  ggtitle("Bioclim 14: Precipitation of Driest Month (mm)") +
   labs(fill = "Precipitation of Driest Month (mm)")
   
 
@@ -370,7 +372,7 @@ bio15_plot <- ggplot() +
   scale_y_continuous(limits = c(25, 37), expand = c(0,0)) +
   xlab('Approximate Longitude') +
   ylab('Approximate Latitude') +
-  ggtitle("Precipitation Seasonality (mm)") +
+  ggtitle("Bioclim 15: Precipitation Seasonality (mm)") +
   labs(fill = "Precipitation Seasonality (mm)")
 
 ### Bioclim #16: Precipitation of Wettest Quarter
@@ -443,6 +445,9 @@ bio19_plot <- ggplot() +
   ggtitle("Precipitation of Coldest Quarter (mm)") +
   labs(fill = "Precipitation of Coldest Quarter (mm)")
   
+### Creating a supplementary figure for bioclim variables chosen
+
+supp_bioclim_plot <- (bio1_plot + bio2_plot + bio13_plot + bio14_plot + bio15_plot) + plot_layout(nrow = 3, ncol = 2)
 
 ################################################## PCA of Magnitude ##########################################
 

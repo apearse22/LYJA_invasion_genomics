@@ -1,0 +1,57 @@
+#### GATK SNP Calling for Tetraploid Lygodium japonicum 
+
+module load gatk
+module load picard
+module load samtools
+
+# Start from sorted bam files #
+
+######### For each sample ##########
+
+# Mark PCR and optical duplicates: 
+picard MarkDuplicates I="$sample".sam.bam O="$sample".markedDups.bam M="$sample".dupMetrics.txt 
+
+# Add read group information 
+picard AddOrReplaceReadGroups I="$sample".markedDups.bam SORT_ORDER=coordinate RGID=lygodium RGLB=lygodium RGPL=illumina RGSM="$sample" RGPU=japonicum CREATE_INDEX=True O="$sample".markedDups.sortedRG.bam
+
+# Create a sequence dictionary for the reference 
+picard CreateSequenceDictionary R=reference.fasta O=reference
+
+# Call variants for each sample 
+gatk HaplotypeCaller -R reference.fa -I "$sample".markedDups.sortedRG.bqsr.bam -ploidy 4 -O "$sample".g.vcf.gz -ERC GCVF 
+
+######## Combine Samples ##########
+
+# Combine all gvcf files: 
+gatk GenomicsDBImport --java-options "-Xmx164g -Xms96g" --genomicsdb-workspace-path parallelDB.superContigs --batch-size 10 -L reference.intervals --sample-name-map samples 
+
+# join-genotyping 
+gatk GenotypeGVCFs -R reference.fasta -V gendb://parallelDB.reference -O reference.calledGTs.vcf.gz --sample-ploidy 4
+
+######## Tag & Filter Sites ##########
+
+# select only SNPs 
+gatk SelectVariants -V reference.calledGTs.vcf.gz  -O reference.calledGTs.SNPs.vcf.gz  --select-type-to-include SNP
+
+# tag genotypes w/ a depth < 10 and convert them to missing data (./././.)  
+gatk VariantFiltration -V reference.calledGTs.SNPs.vcf.gz -O reference.calledGTs.SNPs.tagged.vcf.gz --genotype-filter-expression "DP < 10" --genotype-filter-name "LowDP" --genotype-filter-expression "GQ < 20" --genotype-filter-name "LowGQ"
+
+gatk SelectVariants -V reference.calledGTs.SNPs.tagged.vcf.gz -O reference.calledGTs.SNPs.filtered.missing.vcf.gz --set-filtered-gt-to-nocall
+
+
+######### Finish filtering ##########
+
+# remove loci with a lot of missing data. The threshold here is 50% 
+bcftools view -i 'F_MISSING < 0.5' reference.superContigs.calledGTs.SNPs.filtered.missing.fixed.vcf  > reference.superContigs.calledGTs.SNPs.filtered.missing.DPfiltered.0.5missing.vcf
+
+# now, we need to recalculate the allele count and allele frequency fields because we altered the # of alleles by replacing missing data 
+bcftools +fill-tags reference.superContigs.calledGTs.SNPs.filtered.missing.DPfiltered.0.5missing.vcf -- -t AF,AC > reference.superContigs.calledGTs.SNPs.filtered.missing.DPfiltered.0.5missing.recalc.vcf 
+
+# filter for minor allele frequency 
+bcftools view -i 'MAF > 0.05' reference.superContigs.calledGTs.SNPs.filtered.missing.fixed.DPfiltered.0.8missing.recalc.vcf  > reference.superContigs.calledGTs.SNPs.filtered.missingfixed.DPfiltered.0.5missing.recalc.maf0.5.vcf
+
+# Select one variant per contig
+python thin_vcf.py 
+mv one_snp_per_locus.vcf LYJA.superContigs.calledGTs.SNPs.filtered.missing.cp.back-convert.fixed.DPfiltered.0.5missing.recalc.maf0.5.oneper.vcf
+
+
