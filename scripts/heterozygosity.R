@@ -63,11 +63,18 @@ colnames(transcriptome.ho.ind) <- c("Ind", "Ho", "f.hom.ref", "f.hom.alt", "n.Lo
 
 transcriptome.ho.ind.popmap <- inner_join(transcriptome.ho.ind, popmap)
 
-transcriptome.ho.ind.popmap.plot <- ggplot(transcriptome.ho.ind.popmap, aes(x = Collection.Year, y = Ho, color = Invaded)) + geom_point() + 
+transcriptome.ho.ind.popmap.plot <- ggplot(transcriptome.ho.ind.popmap, aes(x = Collection.Year, y = Ho, color = Invaded)) + 
+  geom_point() + 
   geom_smooth(method = "lm") + 
   theme_bw() +
   stat_regline_equation(aes(label =  paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
-  ggtitle("Transcriptome Invididual Heterozygosity")
+  ggtitle("Transcriptome Reference") +
+  xlab("Collection Year") +
+  scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154"))
+  
+ggsave("transcriptome.ho.ind.popmap.plot.pdf", transcriptome.ho.ind.popmap.plot, height = 6, width = 8)
+ggsave("transcriptome.ho.ind.popmap.plot.png", transcriptome.ho.ind.popmap.plot, height = 6, width = 8, dpi = 300)
+
 
 ### CAPTUS
 
@@ -79,7 +86,12 @@ captus.ho.ind.popmap.plot <- ggplot(captus.ho.ind.popmap, aes(Collection.Year, H
   theme_bw() +
   geom_smooth(method = "lm") +
   stat_regline_equation(aes(label = paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
-  ggtitle("CAPTUS Individual Heterozygosity")
+  ggtitle("CAPTUS Reference") +
+  xlab("Collection Year") +
+  scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154"))
+
+ggsave("captus.ho.ind.popmap.plot.pdf", captus.ho.ind.popmap.plot, height = 6, width = 8)
+ggsave("captus.ho.ind.popmap.plot.png", captus.ho.ind.popmap.plot, height = 6, width = 8, dpi = 300)
 
 ############################################# Calculating population (temporal group) level heterozygosity ###########################
 
