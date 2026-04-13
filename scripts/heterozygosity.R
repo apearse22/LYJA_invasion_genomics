@@ -44,7 +44,7 @@ pop(captus.genind) <- popmap$Temporal_Group
 transcriptome.gl <- gi2gl(transcriptome.genind) # this changes the ploidy to 2 rather than keep 4 from genind object
 ploidy(transcriptome.gl) <- 4 # set the ploidy to 4
 
-gl.compliance.check(transcriptome.gl)
+#gl.compliance.check(transcriptome.gl)
 
 transcriptome.ho.ind <-  gl.report.polyploid_heterozygosity(transcriptome.gl, method = "ind", error.bar = "SE") 
 
@@ -68,7 +68,7 @@ transcriptome.ho.ind.popmap.plot <- ggplot(transcriptome.ho.ind.popmap, aes(x = 
   geom_smooth(method = "lm") + 
   theme_bw() +
   stat_regline_equation(aes(label =  paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
-  ggtitle("Transcriptome Reference") +
+  ggtitle("Transcriptome Reference - All Loci") +
   xlab("Collection Year") +
   scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154"))
   
@@ -86,7 +86,7 @@ captus.ho.ind.popmap.plot <- ggplot(captus.ho.ind.popmap, aes(Collection.Year, H
   theme_bw() +
   geom_smooth(method = "lm") +
   stat_regline_equation(aes(label = paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
-  ggtitle("CAPTUS Reference") +
+  ggtitle("CAPTUS Reference - All Loci") +
   xlab("Collection Year") +
   scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154"))
 

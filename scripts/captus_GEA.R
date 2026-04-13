@@ -17,16 +17,16 @@ library(gridExtra)
 library(dartR)
 library(dartR.base)
 library(dplyr)
-
-
 library(adegenet)
 
 ### Reading in files
 
-envs <- read.csv("sample_envs.csv")
-popmap <- read.delim("data/popmap_states.txt", sep="", header=FALSE)
-LYJA.thinned.vcf <- read.vcfR("data/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
-si <- read.csv("data/si_table.csv")
+envs <- read.csv("files/sample_envs.csv")
+popmap <- read.delim("files/popmap_states.txt", sep="", header=FALSE)
+LYJA.thinned.vcf <- read.vcfR("files/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
+si <- read.csv("files/si_table.csv")
+
+LYJA.gid <- vcfR2genind(LYJA.thinned.vcf, ploidy = 4)
 
 # Here, we are subsetting our genind to only include invaded samples
 samples.native <- c("SRR29127787", "SRR29127784", "SRR29127767","SRR29127785","SRR29127770","SRR29127789","SRR29127769","SRR29127786","SRR29127774","SRR29127777","SRR29127780",
@@ -123,16 +123,6 @@ cand2 <- outliers(load.rda[,2], 3) #59
 cand3 <- outliers(load.rda[,3], 3) #55
 ncand <- length(cand1) + length(cand2) + length(cand3) #185
 
-# FROM BRYAN: 
-# Here, we are obtaining the collective top 5% of SNPs explained by environmental associated. Numeric thresholds are calculated by scaling RDA 
-# eigenvalue to summed eigvenvals of top 3 RDA, then multiplied by 222 (5% of total SNPs), and finally divided by 4439 (total number of SNPs)
-
-#cand1 <- which(abs(load.rda.unique[,1]) >= quantile(abs(load.rda.unique[,1]), 0.983))
-#cand2 <- which(abs(load.rda.unique[,2]) >= quantile(abs(load.rda.unique[,2]), 0.984))
-#cand3 <- which(abs(load.rda.unique[,3]) >= quantile(abs(load.rda.unique[,3]), 0.984))
-
-#ncand <- length(cand1) + length(cand2) +length(cand3)
-
 # Here, we create a dataframe of the loading value of each SNP
 cand1 <- cbind.data.frame(rep(1, times=length(cand1)), names(cand1), unname(cand1))
 cand2 <- cbind.data.frame(rep(1, times=length(cand2)), names(cand2), unname(cand2))
@@ -178,6 +168,18 @@ ggplot(piedata, aes(x="", y=no_snps, fill=envs_predictors)) +
   ggtitle("Nunmber of Candidate SNPs Per Environmental Predictor") +
   theme_void()
 
+
+ggplot(data = piedata, mapping = aes(x = reorder(envs_predictors, -no_snps), y = no_snps, fill = envs_predictors)) + 
+  geom_col() + 
+  xlab("Bioclimatic Variable") +
+  ylab("Number of Candidate SNPs") +
+  scale_fill_manual(values = c("#0074D9", "#B10DC9", "#85144b", "#FF4136", "#FF851B")) + 
+  theme_bw()+ theme(legend.position = "none")
+
+ggsave("GEA_descending_bars.pdf", height = 4, width = 6)
+ggsave("GEA_descending_bars.png", height = 4, width = 6, dpi = 300)
+
+
 sel <- cand$snp
 env <- cand$predictor
 
@@ -209,6 +211,9 @@ points(LYJA.pRDA, display = "species", pch=21, cex = 1.3, col = "gray32", bg=col
 points(LYJA.pRDA, display = "species", pch=21, cex=1.3, col=empty.outline, bg=empty, scaling = 3)
 text(LYJA.pRDA, scaling = 3, display = "bp", col = "black", cex = 1.2)
 
+
+
+
 ############################################## Calculating heterozygosity of candidate loci ##############################################
 
 
@@ -218,7 +223,7 @@ GEA_loci <- LYJA.gid[loc = cand$snp_cleaned]
 
 gl.GEA <- gi2gl(GEA_loci)
 ploidy(gl.GEA) <- 4
-gl.compliance.check(gl.GEA)
+#gl.compliance.check(gl.GEA)
 
 gl.report.polyploid_heterozygosity(gl.GEA, error.bar = "SE") 
 Ho.GEA <- gl.report.polyploid_heterozygosity(gl.GEA, method = "ind")
@@ -229,7 +234,14 @@ Ho.GEA.popmap.year <- inner_join(Ho.GEA, si)
 
 ggplot(data = Ho.GEA.popmap.year, mapping = aes(x = Collection.Year, y = Ho, color = Invaded)) + geom_point() + 
   geom_smooth(method = "lm") + theme_bw() +
-  stat_regline_equation(aes(label =  paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*")))
+  stat_regline_equation(aes(label =  paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
+  xlab("Collection Year") +
+  scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154")) +
+  ggtitle("CAPTUS Reference - GEA Loci")
+
+ggsave("captus.GEA.ho.ind.popmap.plot.pdf", width = 8, height =6)
+ggsave("captus.GEA.ho.ind.popmap.plot.png", width = 8, height =6, dpi = 300)
+
 
 ### Running statistical models
 
