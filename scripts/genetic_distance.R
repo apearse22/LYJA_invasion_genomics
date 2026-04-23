@@ -12,6 +12,8 @@ library(vegan)
 library(vcfR)
 library(dplyr)
 library(ggplot2)
+library(adegenet)
+library(poppr)
 
 ################################################ Reading in files and shared variables #######################################
 
@@ -74,7 +76,7 @@ popmap.nat.years <- popmap.nat.mat %>%
 captus.genind <- vcfR2genind(captus, ploidy = 4)
 
 captus.genind.inv <- captus.genind[!indNames(captus.genind) %in% samples.native]
-captus.genind.nat <- captus.genind[indNames(captus.genind) %in% samples.native & indNames(transcriptome.genind) != "SRR29127772"]
+captus.genind.nat <- captus.genind[indNames(captus.genind) %in% samples.native] # excluded  & indNames(transcriptome.genind) != "SRR29127772" from line of code
 
 # same logic as above
 captus.genind.nat.temp <- captus.genind[indNames(captus.genind) %in% samples.native]
@@ -270,14 +272,19 @@ captus.inv.df <- captus.inv.df %>%
   filter(Freq != 0) %>% 
   group_by(haplotype_div)
 
+
+
 captus.cphaps.plot <- ggplot(captus.inv.df, aes(x = haplotype_div, y = Freq, fill = haplotype_div)) + 
   geom_boxplot(alpha = 0.5) +
+  annotate("text", x = "different", y = 0.052, label = "A", size = 8) +
+  annotate('text', x = "same", y = 0.0652, label = "B", size = 8) +
   xlab("Same/Different Plastid Haplotype") + 
-  ylab("Genetic Distance") + 
-  ggtitle("CAPTUS") +
+  ylab("Genetic Distance") +
+  labs(fill = "Haplotype") +
   theme_bw()
 
-wilcox.test(Freq ~ haplotype_div, data = captus.inv.df)
+wilcox.results <- wilcox.test(Freq ~ haplotype_div, data = captus.inv.df)
+
 
 
 
