@@ -64,11 +64,56 @@ pca.captus.collectionyear <- ggplot() +
   xlab(paste0("PC 1 (", pve.captus[1], "% variation explained)")) +
   ylab(paste0("PC 2 (", pve.captus[2], "% variation explained)")) +
   theme_bw() +
+  theme(text = element_text(size = 16)) +
+
   labs(color = "Collection Year") +
   ggtitle("CAPTUS Reference")
 
 ggsave("captus.collectionyear.pca.pdf", height = 6, width = 8)
 ggsave("captus.collectionyear.pca.png", height = 6, width = 8, dpi = 300)
+
+
+
+# pca colored by native geographic location
+pca.captus.collectionyear <- ggplot() +
+  geom_point(pca.captus.df.inv, mapping = aes(x = Axis1, y = Axis2, color = "black", size = 3, alpha = 0.85)) +
+  geom_point(pca.captus.df.nat, mapping = aes(x = Axis1, y = Axis2, color = Location), shape = 17, size = 2) +
+  scale_color_viridis_c(limits = range(pca.captus.df.popmap$Collection.Year)) +
+  xlab(paste0("PC 1 (", pve.captus[1], "% variation explained)")) +
+  ylab(paste0("PC 2 (", pve.captus[2], "% variation explained)")) +
+  theme_bw() +
+  theme(text = element_text(size = 16)) +
+  
+  labs(color = "Collection Year") +
+  ggtitle("CAPTUS Reference")
+
+ggsave("captus.collectionyear.pca.pdf", height = 6, width = 8)
+ggsave("captus.collectionyear.pca.png", height = 6, width = 8, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ggsave("captus.collectionyear.pca.pdf", height = 6, width = 8)
 
@@ -132,20 +177,88 @@ pca.captus.noPI.df.popmap <- inner_join(pca.captus.noPI.df, popmap)
 
 # Location
 
-pca.captus.noPI.pca <- ggplot(pca.captus.noPI.df.popmap, aes(Axis1, Axis2, color = Location, shape = Invaded)) +
-  geom_point(size = 3) +
+
+pca.captus.noPI.inv.df <- pca.captus.noPI.df.popmap %>% 
+  filter(Invaded == "Y")
+
+pca.captus.noPI.nat.df <- pca.captus.noPI.df.popmap %>% 
+  filter(Invaded == "N")
+
+# invaded total
+pca.captus.collectionyear.pca <- ggplot() +
+  geom_point(pca.captus.df.inv, mapping = aes(x = Axis1, y = Axis2, color = as.numeric(Collection.Year)), size = 3, alpha = 0.85) +
+  geom_point(pca.captus.df.nat, mapping = aes(x = Axis1, y = Axis2), color = "black", shape = 17, size = 3) +
   scale_shape_manual(values = c(17,16)) +
-  scale_color_paletteer_d("colorBlindness::paletteMartin") +
+  scale_color_viridis_c(limits = range(pca.captus.noPI.df.popmap$Collection.Year)) +
   xlab(paste0("PC 1 (", pve.captus.noPI[1], "% variation explained)")) +
   ylab(paste0("PC 2 (", pve.captus.noPI[2], "% variation explained)")) +
-  ggtitle("CAPTUS Reference") +
-  theme_bw()
+  theme_bw() +
+  labs(color = "Collection Year") +
+  theme(text = element_text(size = 16)) 
 
-ggsave("captus.noPI.location.pca.pdf", width = 8, height = 6)
-ggsave("captus.noPI.location.pca.png", width = 8, height = 6, dpi = 300)
+ggsave("captus.collectionyear.inv.pca.pdf", width = 8, height = 6)
+ggsave("captus.collectionyear.inv.pca.png", width = 8, height = 6, dpi = 300)
 
 
 
+# no pacific islands by invaded collection year
+pca.captus.noPI.collectionyear.pca <- ggplot() +
+  geom_point(pca.captus.noPI.inv.df, mapping = aes(x = Axis1, y = Axis2, color = as.numeric(Collection.Year)), size = 3, alpha = 0.85) +
+  geom_point(pca.captus.noPI.nat.df, mapping = aes(x = Axis1, y = Axis2), color = "black", shape = 17, size = 3) +
+  scale_shape_manual(values = c(17,16)) +
+  scale_color_viridis_c(limits = range(pca.captus.noPI.df.popmap$Collection.Year)) +
+  xlab(paste0("PC 1 (", pve.captus.noPI[1], "% variation explained)")) +
+  ylab(paste0("PC 2 (", pve.captus.noPI[2], "% variation explained)")) +
+  theme_bw() +
+  labs(color = "Collection Year") +
+  theme(text = element_text(size = 16)) 
+  
+ggsave("captus.collectionyear.noPI.pca.pdf", width = 8, height = 6)
+ggsave("captus.collectionyear.noPI.pca.png", width = 8, height = 6, dpi = 300)
+
+
+# native location
+pca.captus.collectionyear <- ggplot() +
+  geom_point(pca.captus.df.inv, mapping = aes(x = Axis1, y = Axis2), color = "black", size = 3, alpha = 0.85) +
+  geom_point(pca.captus.df.nat, mapping = aes(x = Axis1, y = Axis2, color = Location), shape = 17, size = 3) +
+  #scale_color_viridis_c(limits = range(pca.captus.df.popmap$Collection.Year)) +
+  scale_color_manual(values = c("China" ="chartreuse3",
+                                "Japan" = "darkorchid3",
+                                "Indonesia" = "firebrick3",
+                                "Philippines" = "dodgerblue2",
+                                "Vietnam" = "gold1",
+                                "Taiwan" = "lightblue",
+                                "Palau" = "pink")) +
+  xlab(paste0("PC 1 (", pve.captus[1], "% variation explained)")) +
+  ylab(paste0("PC 2 (", pve.captus[2], "% variation explained)")) +
+  theme_bw() +
+  labs(color = "Native Location") +
+  theme(text = element_text(size = 16)) 
+  
+
+ggsave("captus.nativelocation.pca.pdf", width = 8, height = 6)
+ggsave("captus.nativelocation.pca.png", width = 8, height = 6, dpi = 300)
+
+
+# no Pacific islands native location
+pca.captus.noPI.collectionyearnative.pca <- ggplot() +
+  geom_point(pca.captus.noPI.nat.df, mapping = aes(x = Axis1, y = Axis2, color = Location), size = 3, alpha = 0.85, shape = 17) +
+  geom_point(pca.captus.noPI.inv.df, mapping = aes(x = Axis1, y = Axis2), color = "black", size = 3) +
+  scale_shape_manual(values = c(17,16)) +
+  #scale_color_viridis_c(limits = range(pca.captus.noPI.df.popmap$Collection.Year)) +
+  scale_color_manual(values = c("China" ="chartreuse3",
+                                "Japan" = "darkorchid3",
+                                "Indonesia" = "firebrick3",
+                                "Philippines" = "dodgerblue2",
+                                "Vietnam" = "gold1")) +
+  xlab(paste0("PC 1 (", pve.captus.noPI[1], "% variation explained)")) +
+  ylab(paste0("PC 2 (", pve.captus.noPI[2], "% variation explained)")) +
+  theme_bw() +
+  labs(color = "Native Location") +
+  theme(text = element_text(size = 16)) 
+
+ggsave("captus.nativelocation.noPI.pca.pdf", width = 8, height = 6)
+ggsave("captus.nativelocation.noPI.pca.png", width = 8, height = 6, dpi = 300)
 
 
 ################################### temporal groups - excluded from analyses ########################

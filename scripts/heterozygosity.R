@@ -1,8 +1,8 @@
 ###########################################################
 
-# Calculating individual and temporal group heterozygosity
+# Calculating coding and non-coding heterozygosity
 # code developed: Abby Pearse, Jessie Pelosi
-# Last updated: 03/25/2026
+# Last updated: 04/27/2026
 
 ###########################################################
 
@@ -19,74 +19,118 @@ library(ggpubr)
 
 ################################################### Reading in files and shared variables #########################################
 
+captus <- read.vcfR("files/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
+txm <- read.vcfR("files/")
 popmap <- read.csv("files/popmap_updatedcoords.csv")
-captus.vcf <- read.vcfR("files/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
 
-### Creating genind object
+txm.captus.blast <- read.delim("files/LYJA.CAPTUS.blast.out")
+colnames(txm.captus.blast) <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen",
+                                "qstart",
+                                "qend", "sstart", "send", "evalue", "bitscore")
 
-captus.genind <- vcfR2genind(captus.vcf, ploidy = 4)
+txm.captus.blast.05eval <- txm.captus.blast %>% 
+  filter(evalue <= 0.05) # forget to set evalue threshold when creating file in HPC
+
+
+################################# creating / subsetting genind objects ########################
+
+# creating captus genind object
+
+captus.genind <- vcfR2genind(captus, ploidy = 4)
 pop(captus.genind) <- popmap$Temporal_Group
 
+# subsetting captus genind based on hits to transcriptome
 
-#################################################### Calculating individual level heterozygosity #######################################
+locNames(captus.genind) <- gsub("_[0-9]..", "", locNames(captus.genind))
+locNames(captus.genind) <- gsub("_[0-9].", "", locNames(captus.genind))
 
-### CAPTUS
-
-captus.gl <- gi2gl(captus.genind)
-ploidy(captus.gl) <- 4
-
-captus.ho.ind <- gl.report.polyploid_heterozygosity(captus.gl, method = "ind", error.bar = "SE")
-
-######################### Plotting individual level heterozygosity
+captus.coding.genind <- captus.genind[loc = locNames(captus.genind) %in% txm.captus.blast.05eval$qseqid]
+captus.noncoding.genind <- captus.genind[loc = !locNames(captus.genind) %in% txm.captus.blast.05eval$qseqid]
 
 
-colnames(captus.ho.ind) <- c("Ind", "Ho", "f.hom.ref", "f.hom.alt", "n.Loc")
 
-captus.ho.ind.popmap <- inner_join(captus.ho.ind, popmap)
+######################################### Calculating individual level heterozygosity #######################################
 
-captus.ho.ind.popmap.plot <- ggplot(captus.ho.ind.popmap, aes(Collection.Year, Ho, color = Invaded)) + geom_point() +
+### coding
+
+coding.gl <- gi2gl(captus.coding.genind)
+ploidy(coding.gl) <- 4
+
+captus.coding.ho <- gl.report.polyploid_heterozygosity(coding.gl, method = "ind", error.bar = "SE")
+
+
+### non-coding
+
+noncoding.gl <- gi2gl(captus.noncoding.genind)
+ploidy(noncoding.gl) <- 4
+
+captus.noncoding.ho <- gl.report.polyploid_heterozygosity(noncoding.gl, method = "ind", error.bar = "SE")
+
+
+################################## Plotting individual level heterozygosity ###############################
+
+### coding
+colnames(captus.coding.ho) <- c("Ind", "Ho", "f.hom.ref", "f.hom.alt", "n.Loc")
+
+captus.coding.ho.popmap <- inner_join(captus.coding.ho, popmap)
+
+captus.coding.ho.popmap.plot <- ggplot(captus.coding.ho.popmap, aes(Collection.Year, Ho, color = Invaded, shape = Invaded)) + geom_point(size = 2) +
   theme_bw() +
   geom_smooth(method = "lm") +
   stat_regline_equation(aes(label = paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
-  ggtitle("CAPTUS Reference - All Loci") +
+  scale_shape_manual(values = c(17, 16)) +
   xlab("Collection Year") +
-  scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154"))
+  scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154")) +
+  theme(text = element_text(size = 16))
 
-ggsave("captus.ho.ind.popmap.plot.pdf", captus.ho.ind.popmap.plot, height = 6, width = 8)
-ggsave("captus.ho.ind.popmap.plot.png", captus.ho.ind.popmap.plot, height = 6, width = 8, dpi = 300)
+ggsave("captus.coding.ho.plot.pdf", captus.coding.ho.popmap.plot, height = 6, width = 8)
+ggsave("captus.coding.ho.plot.png", captus.coding.ho.popmap.plot, height = 6, width = 8, dpi = 300)
 
-############################################# Calculating population (temporal group) level heterozygosity ###########################
 
-captus.ho.popmetric <- gl.report.polyploid_heterozygosity(captus.gl, method = "pop", error.bar = "SE") # CAPTUS
+### non-coding
 
-############### Plotting population level heterozygosity 
+colnames(captus.noncoding.ho) <- c("Ind", "Ho", "f.hom.ref", "f.hom.alt", "n.Loc")
 
-captus.ho.popmetric.df <- data.frame(Temporal_Group = c("Early Invasion", "Mid Invasion", "Late Invasion", "Native"),
-                                            Obs_Ho = captus.ho.popmetric$Ho)
+captus.noncoding.ho.popmap <- inner_join(captus.noncoding.ho, popmap)
 
-captus.popmetric.plot.df <-  ggplot(captus.ho.popmetric.df, aes(Temporal_Group, y = Obs_Ho, fill = Temporal_Group)) + 
-  geom_col() +
+captus.noncoding.ho.popmap.plot <- ggplot(captus.noncoding.ho.popmap, aes(Collection.Year, Ho, color = Invaded, shape = Invaded)) + geom_point(size = 2) +
   theme_bw() +
-  ggtitle("CAPTUS Population (Temporal Group) Observed Heterozygosity") +
-  scale_fill_manual(values = c ("Native" = "dodgerblue2", "Early Invasion" = "pink",
-                                "Mid Invasion" = "deeppink2", "Late Invasion" = "firebrick4")) +
-  xlab("Temporal Group") +
-  ylab("Observed Heterozygosity")
+  geom_smooth(method = "lm") +
+  scale_shape_manual(values = c(17, 16)) +
+  stat_regline_equation(aes(label = paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
+  xlab("Collection Year") +
+  scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154")) +
+  theme(text = element_text(size = 16))
+
+ggsave("captus.noncoding.ho.plot.pdf", captus.noncoding.ho.popmap.plot, height = 6, width = 8)
+ggsave("captus.noncoding.ho.plot.png", captus.noncoding.ho.popmap.plot, height = 6, width = 8, dpi = 300)
 
 
-############################################# Conducting statistical analyses ###########################################
+############################################## Conducting statistical analyses ##############################
 
-### CAPTUS
+### coding
 
-# Model with Interactions
+# interaction
 
-captus.Ho.lm.int <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = captus.ho.ind.popmap)
-summary(captus.Ho.lm.int)
+coding.lm.interaction <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = captus.coding.ho.popmap)
+summary(coding.lm.interaction)
 
-# Model without Interactions
+# no interaction
 
-captus.Ho.lm.noint <- lm(Ho ~ Collection.Year + Invaded, data = captus.ho.ind.popmap)
-summary(captus.Ho.lm.noint) 
+coding.lm.nointeraction <- lm(Ho ~ Collection.Year + Invaded, data = captus.coding.ho.popmap)
+summary(coding.lm.nointeraction)
+
+### non-coding
+
+# interaction
+
+noncoding.lm.interaction <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = captus.noncoding.ho.popmap)
+summary(noncoding.lm.interaction)
+
+# no interaction
+
+noncoding.lm.nointeraction <- lm(Ho ~ Collection.Year + Invaded, data = captus.noncoding.ho.popmap)
+summary(noncoding.lm.nointeraction)
 
 
 
@@ -97,7 +141,12 @@ summary(captus.Ho.lm.noint)
 
 
 
-######################################################## Transcriptome analyses #################################################
+
+
+############################################# old analyses after this point! ###################################
+
+
+####################### Transcriptome analyses #########################
 
 transcriptome.vcf <- read.vcfR("files/txm.50missing.CTmarked.recalc.maf0.05.thinned.vcf")
 
@@ -159,3 +208,40 @@ summary(transcriptome.Ho.lm.int)
 
 transcriptome.Ho.lm.noint <- lm(Ho ~ Collection.Year + Invaded, data = transcriptome.ho.ind.popmap)
 summary(transcriptome.Ho.lm.noint) 
+
+
+############################################# Calculating population (temporal group) level heterozygosity ###########################
+
+captus.ho.popmetric <- gl.report.polyploid_heterozygosity(captus.gl, method = "pop", error.bar = "SE") # CAPTUS
+
+############### Plotting population level heterozygosity 
+
+captus.ho.popmetric.df <- data.frame(Temporal_Group = c("Early Invasion", "Mid Invasion", "Late Invasion", "Native"),
+                                     Obs_Ho = captus.ho.popmetric$Ho)
+
+captus.popmetric.plot.df <-  ggplot(captus.ho.popmetric.df, aes(Temporal_Group, y = Obs_Ho, fill = Temporal_Group)) + 
+  geom_col() +
+  theme_bw() +
+  ggtitle("CAPTUS Population (Temporal Group) Observed Heterozygosity") +
+  scale_fill_manual(values = c ("Native" = "dodgerblue2", "Early Invasion" = "pink",
+                                "Mid Invasion" = "deeppink2", "Late Invasion" = "firebrick4")) +
+  xlab("Temporal Group") +
+  ylab("Observed Heterozygosity")
+
+
+### calculating captus statistical models
+
+
+##### Conducting statistical analyses
+
+### CAPTUS
+
+# Model with Interactions
+
+captus.Ho.lm.int <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = captus.ho.ind.popmap)
+summary(captus.Ho.lm.int)
+
+# Model without Interactions
+
+captus.Ho.lm.noint <- lm(Ho ~ Collection.Year + Invaded, data = captus.ho.ind.popmap)
+summary(captus.Ho.lm.noint) 
