@@ -20,7 +20,7 @@ captus <- read.vcfR("files/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned
 
 popmap <- read.csv("files/popmap_updatedcoords.csv", sep = ",")
 
-Whiting.blast.hits <- read.delim("files/LYJA_Whiting_blast.out", header = F, sep = "")
+#Whiting.blast.hits <- read.delim("files/LYJA_Whiting_blast.out", header = F, sep = "")
 
 txm.captus.blast <- read.delim("files/LYJA.CAPTUS.blast.out")
 colnames(txm.captus.blast) <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen",
@@ -28,14 +28,14 @@ colnames(txm.captus.blast) <- c("qseqid", "sseqid", "pident", "length", "mismatc
                                 "qend", "sstart", "send", "evalue", "bitscore")
 
 txm.captus.blast.05eval <- txm.captus.blast %>% 
-  filter(evalue <= 1e-5) # forget to set evalue threshold when creating file in HPC
+  filter(evalue <= 1e-5) # forgot to set evalue threshold when creating file in HPC
 
 txm.arabidopsis.blast <- read.delim("files/Arabidopsis.LYJA.blast")
 colnames(txm.arabidopsis.blast) <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen",
                                      "qstart",
                                      "qend", "sstart", "send", "evalue", "bitscore")
 txm.arabidopsis.blast.05eval <- txm.arabidopsis.blast %>% 
-  filter(evalue <= 1e-5) # forget to set evalue threshold when creating file in HPC
+  filter(evalue <= 1e-5) # forgot to set evalue threshold when creating file in HPC
 
 
 ###################################### subsetting CAPTUS for coding and non-coding loci ################
@@ -79,15 +79,28 @@ colnames(best.hit.captus.txm) <- c("qseqid", "ID", "pident", "length", "mismatch
 captus.arabidopsis.blast <- inner_join(best.hit.arabidopsis.txm, best.hit.captus.txm, by = "ID", suffix = c(".arabidopsis", ".captus"))
 
 
-coding.arabidopsis <- captus.coding.genind[loc = locNames(captus.coding.genind) %in% captus.arabidopsis.blast$qseqid]
-noncoding.arabidopsis <- captus.noncoding.genind[loc = locNames(captus.noncoding.genind) %in% captus.arabidopsis.blast$qseqid] # 0 - think this is just bc there are no noncoding hits
+# 458 CAPTUS loci with BLAST hits to Arabidopsis
+coding.arabidopsis <- captus.coding.genind[loc = locNames(captus.coding.genind) %in% captus.arabidopsis.blast$qseqid] 
+
+#noncoding.arabidopsis <- captus.noncoding.genind[loc = locNames(captus.noncoding.genind) %in% captus.arabidopsis.blast$qseqid] # 0 - think this is just bc there are no noncoding hits
 
 
-arabiopsis.in.captus.df <- captus.arabidopsis.blast %>% 
-  filter(qseqid %in% locNames(coding.arabidopsis))
+#arabiopsis.in.captus.df <- captus.arabidopsis.blast %>% 
+#  filter(qseqid %in% locNames(coding.arabidopsis))
 
+Whiting.genes <- read.delim("files/Whiting_climate_genes.txt", header = F)
 
-coding.in.whiting.genind <- coding.arabidopsis[loc = locNames(coding.arabidopsis) %in% captus.arabidopsis.blast$qseqid]
+Whiting.genes$V1 <- gsub("\\.\\*",".1", Whiting.genes$V1)
+colnames(Whiting.genes) <- c("sseqid")
+
+captus.whiting.genes.blast <- inner_join(Whiting.genes, captus.arabidopsis.blast)
+
+# Debug
+
+coding_names <- as.data.frame(locNames(coding.arabidopsis))
+captus_names <- as.data.frame(captus.whiting.genes.blast$qseqid)
+
+coding.in.whiting.genind <- coding.arabidopsis[loc = locNames(captus.genind) %in% captus.whiting.genes.blast$qseqid]
 
 
 

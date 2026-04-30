@@ -20,7 +20,6 @@ library(ggpubr)
 ################################################### Reading in files and shared variables #########################################
 
 captus <- read.vcfR("files/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
-txm <- read.vcfR("files/")
 popmap <- read.csv("files/popmap_updatedcoords.csv")
 
 txm.captus.blast <- read.delim("files/LYJA.CAPTUS.blast.out")
@@ -76,7 +75,7 @@ captus.coding.ho.popmap <- inner_join(captus.coding.ho, popmap)
 
 captus.coding.ho.popmap.plot <- ggplot(captus.coding.ho.popmap, aes(Collection.Year, Ho, color = Invaded, shape = Invaded)) + geom_point(size = 2) +
   theme_bw() +
-  geom_smooth(method = "lm") +
+  geom_smooth(method = "lm", linetype = "dashed") +
   stat_regline_equation(aes(label = paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
   scale_shape_manual(values = c(17, 16)) +
   xlab("Collection Year") +
@@ -93,9 +92,11 @@ colnames(captus.noncoding.ho) <- c("Ind", "Ho", "f.hom.ref", "f.hom.alt", "n.Loc
 
 captus.noncoding.ho.popmap <- inner_join(captus.noncoding.ho, popmap)
 
-captus.noncoding.ho.popmap.plot <- ggplot(captus.noncoding.ho.popmap, aes(Collection.Year, Ho, color = Invaded, shape = Invaded)) + geom_point(size = 2) +
+captus.noncoding.ho.popmap.plot <- ggplot(captus.noncoding.ho.popmap, aes(Collection.Year, Ho, color = Invaded, shape = Invaded, linetype = Invaded)) + geom_point(size = 2) +
   theme_bw() +
   geom_smooth(method = "lm") +
+  scale_linetype_manual(values = c("Y" = "dashed",
+                                   "N" = "solid")) +
   scale_shape_manual(values = c(17, 16)) +
   stat_regline_equation(aes(label = paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
   xlab("Collection Year") +
