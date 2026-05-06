@@ -28,7 +28,7 @@ colnames(txm.captus.blast) <- c("qseqid", "sseqid", "pident", "length", "mismatc
                                 "qend", "sstart", "send", "evalue", "bitscore")
 
 txm.captus.blast.05eval <- txm.captus.blast %>% 
-  filter(evalue <= 0.05) # forget to set evalue threshold when creating file in HPC
+  filter(evalue <= 1e-5) # forget to set evalue threshold when creating file in HPC
 
 
 ################################# creating / subsetting genind objects ########################
@@ -95,25 +95,32 @@ captus.noncoding.ho.popmap <- inner_join(captus.noncoding.ho, popmap)
 captus.noncoding.ho.popmap.plot <- ggplot(captus.noncoding.ho.popmap, aes(Collection.Year, Ho, color = Invaded, shape = Invaded, linetype = Invaded)) + geom_point(size = 2) +
   theme_bw() +
   geom_smooth(method = "lm") +
-  scale_linetype_manual(values = c("Y" = "dashed",
-                                   "N" = "solid")) +
+  scale_linetype_manual(values = c("Y" = "solid",
+                                   "N" = "dashed")) +
   scale_shape_manual(values = c(17, 16)) +
   stat_regline_equation(aes(label = paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
   xlab("Collection Year") +
   scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154")) +
-  theme(text = element_text(size = 16))
+  theme(text = element_text(size = 16)) #+ xlim(1940, 2015)
 
 ggsave("captus.noncoding.ho.plot.pdf", captus.noncoding.ho.popmap.plot, height = 6, width = 8)
 ggsave("captus.noncoding.ho.plot.png", captus.noncoding.ho.popmap.plot, height = 6, width = 8, dpi = 300)
 
 
+
+
+
 ############################################## Conducting statistical analyses ##############################
 
-### coding
+# standardize Collection Year to start at the beginning of the dataset
+
+captus.coding.ho.popmap$std.Year <- captus.coding.ho.popmap$Collection.Year - min(captus.coding.ho.popmap$Collection.Year)
+
+### coding loci
 
 # interaction
 
-coding.lm.interaction <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = captus.coding.ho.popmap)
+coding.lm.interaction <- lm(Ho ~ std.Year + Invaded + std.Year:Invaded, data = captus.coding.ho.popmap)
 summary(coding.lm.interaction)
 
 # no interaction
@@ -123,10 +130,27 @@ summary(coding.lm.nointeraction)
 
 ### non-coding
 
-# interaction
+# standardize Collection Year to start at the beginning of the dataset
 
-noncoding.lm.interaction <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = captus.noncoding.ho.popmap)
+captus.noncoding.ho.popmap$std.Year <- captus.noncoding.ho.popmap$Collection.Year - min(captus.noncoding.ho.popmap$Collection.Year)
+
+
+# interaction
+noncoding.lm.interaction <- lm(Ho ~ std.Year + Invaded + std.Year:Invaded, data = captus.noncoding.ho.popmap)
 summary(noncoding.lm.interaction)
+
+# standardize: year - minimum year 
+# run a model for just the invaded range samples lm(Ho~Collection.Year, data = invaded.samples)
+
+# no effect of year on Ho in the native samples
+# across all years, there is an effect of invasion status on Ho --> invaded samples have lower Ho than native samples 
+#   at the year 0, this is the y-intercept  (5.91e-01)
+# and there is an additional effect of collection year only in the invaded samples 
+# maginally significant interaction between collection year and invasion status, increased Ho as year increases 
+
+t <- filter(captus.noncoding.ho.popmap, Invaded == "Y")
+test <- lm(Ho~Collection.Year, data = t)
+summary(test)
 
 # no interaction
 
