@@ -23,7 +23,7 @@ library(adegenet)
 
 captus <- read.vcfR("files/captus.SNPs.0.5missing.CTmarked.recalc.maf0.5.thinned.vcf")
 envs <- read.csv("files/sample_envs.csv")
-popmap <- read.csv("files/popmap_updatedcoords.csv", sep="", header=FALSE)
+popmap <- read.csv("files/popmap_updatedcoords.csv", sep=",")
 si <- read.csv("files/si_table.csv")
 
 
@@ -52,14 +52,19 @@ captus.invaded <- captus.genind[!indNames(captus.genind) %in% samples.native]
 captus.impute <- tab(captus.invaded, freq = TRUE, NA.method = "mean") # matrix containing genotypic data
 
 
-################################ preparing common variables between coding and non-coding GEA #####################
+envs <- envs[!envs$Ind %in% samples.native,] # subset environmental data to only be invaded range
+envs2 <- dplyr::select(envs, BIO1, BIO2, BIO13, BIO14, BIO15, Ind)
+rownames(envs2) <- envs$Ind
+colnames(envs2) <- c("BIO1", "BIO2", "BIO13", "BIO14", "BIO15", "Ind")
 
 
 predictors <- envs2[,1:5]
 
 envs3 <- inner_join(popmap, envs2)
-levels(envs3$location) <- c("Florida", "Texas", "Alabama", "Arkansas", "South_Carolina", "Georgia", "Mississippi", "Louisiana")
-state <- envs3$location
+levels(envs3$Location) <- c("Florida", "Texas", "Alabama", "Arkansas", "South_Carolina", "Georgia", "Mississippi", "Louisiana")
+state <- envs3$Location
+
+
 
 ###################################################### PCA #################################################
 
@@ -83,10 +88,8 @@ screeplot(rda) # majority of our variation is seen in RDA1, RDA2, and RDA3
 
 ################################################ pRDA #######################################
 
-envs <- envs[!envs$Ind %in% samples.native,] # subset environmental data to only be invaded range
-envs2 <- dplyr::select(envs, BIO1, BIO2, BIO13, BIO14, BIO15)
-rownames(envs2) <- envs$Ind
-envs2$sample <- rownames(envs2)
+
+#envs2$sample <- rownames(envs2)
 
 envs.add <- inner_join(envs2, impute.PCA.df.popmap)
 
@@ -103,7 +106,7 @@ points(pRDA, display = "species", pch = 20, cex=0.7, col="gray32", scaling = 3) 
 points(pRDA, display = "sites", pch = 21, cex = 1.3, col = "gray32", bg=bg, scaling = 3)
 text(pRDA, scaling = 3, display = "bp", col = "#0868ac", cex = 1)
 
-legend("bottomright", legend = levels(state), bty= 'n', col = "gray32", pch = 21, pt.bg = bg)
+#legend("bottomright", legend = levels(state), bty= 'n', col = "gray32", pch = 21, pt.bg = bg)
 
 
 ########## plotting directionality of SNPs explained by bioclim variables, according to RDA1/RDA2 & RDA1 / RDA3 ########
@@ -170,6 +173,120 @@ colnames(cand.total.df.foo)[9] <- "predictor"
 colnames(cand.total.df.foo)[10] <- "correlation"
 
 
+
+########################################### separating number of loci in coding vs noncoding ##############################
+
+txm.captus.blast <- read.delim("files/LYJA.CAPTUS.blast.out")
+colnames(txm.captus.blast) <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen",
+                                "qstart",
+                                "qend", "sstart", "send", "evalue", "bitscore")
+
+txm.captus.blast.05eval <- txm.captus.blast %>% 
+  filter(evalue <= 1e-05) # forget to set evalue threshold when creating file in HPC
+
+best.hit.txm.captus.blast.05eval <- txm.captus.blast.05eval %>% 
+  group_by(qseqid) %>% 
+  arrange(evalue) %>% 
+  filter(row_number() == 1)
+
+
+
+txm.arabidopsis.blast <- read.delim("files/Arabidopsis.LYJA.blast")
+colnames(txm.arabidopsis.blast) <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart",
+                                               "qend", "sstart", "send", "evalue", "bitscore")
+
+best.hit.txm.arabidopsis.blast <- txm.arabidopsis.blast %>% 
+  group_by(qseqid) %>% 
+  arrange(evalue) %>% 
+  filter(row_number() == 1)
+
+# at some point, get best hit per locus 
+
+
+################################# creating / subsetting genind objects ########################
+
+# subsetting captus genind based on hits to transcriptome
+
+#locNames(captus.genind) <- gsub("_[0-9]..", "", locNames(captus.genind))
+#locNames(captus.genind) <- gsub("_[0-9].", "", locNames(captus.genind))
+
+
+locNames(captus.invaded) <- gsub("_[0-9\\.].*", "", locNames(captus.invaded))
+
+
+captus.coding.genind <- captus.invaded[loc = locNames(captus.invaded) %in% best.hit.txm.captus.blast.05eval$qseqid.cleaned]
+captus.noncoding.genind <- captus.invaded[loc = !locNames(captus.invaded) %in% best.hit.txm.captus.blast.05eval$qseqid.cleaned]
+
+
+cand.total.df.foo$snp.cleaned <- gsub("_[0-9].*", "", cand.total.df.foo$snp)
+cand.total.df.foo.unique <- cand.total.df.foo %>% 
+  distinct(cand.total.df.foo$snp.cleaned, .keep_all = TRUE)
+
+
+gea.loci.in.coding <- captus.coding.genind[loc = locNames(captus.coding.genind) %in% cand.total.df.foo.unique$snp.cleaned]
+gea.loci.in.noncoding <- captus.noncoding.genind[loc = locNames(captus.noncoding.genind) %in% cand.total.df.foo.unique$snp.cleaned]
+
+envs.predictors.unique <- levels(as.factor(cand.total.df.foo.unique$predictor))
+no.snps.unique <- as.numeric(table(cand.total.df.foo.unique$predictor))
+piedata.unique <- data.frame(envs.predictors.unique, no.snps.unique)
+
+
+ggplot(piedata.unique, aes(x="", y=no.snps.unique, fill=envs.predictors.unique)) +
+  geom_col(color = "black") +
+  geom_text(aes(label = no.snps.unique), 
+            position = position_stack(vjust = 0.5)) +
+  coord_polar(theta="y") +
+  ggtitle("Nunmber of Candidate SNPs Per Environmental Predictor") +
+  theme_void()
+
+# descending bar plot of the 114 loci
+
+ggplot(data = piedata.unique, aes(x = reorder(envs.predictors.unique, -no.snps.unique), y = no.snps.unique, fill = envs.predictors.unique)) + 
+  geom_col() + 
+  xlab("Bioclimatic Variable") +
+  ylab("Number of Candidate SNPs") +
+  scale_fill_manual(values = c("#0074D9", "#B10DC9", "#85144b", "#FF4136", "#FF851B")) + 
+  theme_bw()+ 
+  theme(legend.position = "none")
+
+
+#ggsave("GEA_descending_bars_updated.pdf", height = 4, width = 6)
+#ggsave("GEA_descending_bars_updated.png", height = 4, width = 6, dpi = 300)
+
+
+################################## doing a chi square test between coding and noncoding loci
+
+cand.total.df.foo.unique.coding <- cand.total.df.foo.unique %>% 
+  filter(snp.cleaned %in% locNames(gea.loci.in.coding)) %>% 
+  dplyr::select(bio14, bio2, bio15, bio13, bio1, correlation, predictor, snp.cleaned)
+
+
+envs.predictors.unique.coding <- levels(as.factor(cand.total.df.foo.unique.coding$predictor))
+no.snps.unique.coding <- as.numeric(table(cand.total.df.foo.unique.coding$predictor))
+piedata.unique.coding <- data.frame(envs.predictors.unique.coding, no.snps.unique.coding)
+colnames(piedata.unique.coding) <- c("bioclim", "no. coding snps")
+
+
+
+cand.total.df.foo.unique.noncoding <- cand.total.df.foo.unique %>% 
+  filter(snp.cleaned %in% locNames(gea.loci.in.noncoding)) %>% 
+  dplyr::select(bio14, bio2, bio15, bio13, bio1, correlation, predictor, snp.cleaned)
+
+
+envs.predictors.unique.noncoding <- levels(as.factor(cand.total.df.foo.unique.noncoding$predictor))
+no.snps.unique.noncoding <- as.numeric(table(cand.total.df.foo.unique.noncoding$predictor))
+piedata.unique.noncoding <- data.frame(envs.predictors.unique.noncoding, no.snps.unique.noncoding)
+colnames(piedata.unique.noncoding) <- c("bioclim", "no. noncoding snps")
+
+
+chi.df <- inner_join(piedata.unique.coding, piedata.unique.noncoding)
+row.names(chi.df) <- chi.df$bioclim
+chi.df <- chi.df %>% 
+  dplyr::select(-bioclim)
+
+chi.df.results <- chisq.test(chi.df) # not significant
+
+
 ########################## Plotting number of SNPs explained by environmental predictor
 
 envs.predictors <- levels(as.factor(cand.total.df.foo$predictor))
@@ -198,6 +315,36 @@ ggplot(data = piedata, aes(x = reorder(envs.predictors, -no.snps), y = no.snps, 
 
 ggsave("GEA_descending_bars.pdf", height = 4, width = 6)
 ggsave("GEA_descending_bars.png", height = 4, width = 6, dpi = 300)
+
+
+###################################### finding functions of arabidopsis genes in coding environmental loci
+
+coding.gea.subsetted <- cand.total.df.foo.unique.coding %>% 
+  dplyr::select(predictor, snp.cleaned)
+colnames(coding.gea.subsetted) <- c("predictor", "qseqid")
+
+coding.gea.in.txm.captus.blast <- inner_join(coding.gea.subsetted, best.hit.txm.captus.blast.05eval)
+coding.gea.in.txm.captus.blast.subsetted <- coding.gea.in.txm.captus.blast %>% 
+  dplyr::select(predictor, qseqid, sseqid, evalue)
+colnames(coding.gea.in.txm.captus.blast.subsetted) <- c("predictor", "qseqid", "ID", "evalue")
+
+
+best.hit.txm.arabidopsis.blast.subset <- best.hit.txm.arabidopsis.blast %>% 
+  dplyr::select(qseqid, sseqid)
+
+colnames(best.hit.txm.arabidopsis.blast.subset) <- c("ID", "AT.gene")
+
+coding.gea.loci.in.arabidopsis <- inner_join(coding.gea.in.txm.captus.blast.subsetted, best.hit.txm.arabidopsis.blast.subset)
+
+
+
+
+
+
+
+
+
+
 
 
 ############################################## Calculating heterozygosity of candidate loci ##############################################
