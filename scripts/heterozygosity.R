@@ -125,7 +125,7 @@ summary(coding.lm.interaction)
 
 # no interaction
 
-coding.lm.nointeraction <- lm(Ho ~ Collection.Year + Invaded, data = captus.coding.ho.popmap)
+coding.lm.nointeraction <- lm(Ho ~ std.Year + Invaded, data = captus.coding.ho.popmap)
 summary(coding.lm.nointeraction)
 
 ### non-coding
@@ -139,30 +139,25 @@ captus.noncoding.ho.popmap$std.Year <- captus.noncoding.ho.popmap$Collection.Yea
 noncoding.lm.interaction <- lm(Ho ~ std.Year + Invaded + std.Year:Invaded, data = captus.noncoding.ho.popmap)
 summary(noncoding.lm.interaction)
 
-# standardize: year - minimum year 
-# run a model for just the invaded range samples lm(Ho~Collection.Year, data = invaded.samples)
+captus.noncoding.ho.popmap.invaded <- filter(captus.noncoding.ho.popmap, Invaded == "Y")
+captus.noncoding.ho.popmap.invaded.lm <- lm(Ho~std.Year, data = captus.noncoding.ho.popmap.invaded)
+summary(captus.noncoding.ho.popmap.invaded.lm)
 
-# no effect of year on Ho in the native samples
-# across all years, there is an effect of invasion status on Ho --> invaded samples have lower Ho than native samples 
-#   at the year 0, this is the y-intercept  (5.91e-01)
-# and there is an additional effect of collection year only in the invaded samples 
-# maginally significant interaction between collection year and invasion status, increased Ho as year increases 
+yr = data.frame(std.Year = 0)
 
-t <- filter(captus.noncoding.ho.popmap, Invaded == "Y")
-test <- lm(Ho~Collection.Year, data = t)
-summary(test)
+predict(captus.noncoding.ho.popmap.invaded.lm, newdata = yr)
 
-# no interaction
+captus.noncoding.ho.popmap.native <- filter(captus.noncoding.ho.popmap, Invaded == "N")
+captus.noncoding.ho.popmap.native.lm <- lm(Ho~std.Year, data = captus.noncoding.ho.popmap.native)
+summary(captus.noncoding.ho.popmap.native.lm)
 
-noncoding.lm.nointeraction <- lm(Ho ~ Collection.Year + Invaded, data = captus.noncoding.ho.popmap)
-summary(noncoding.lm.nointeraction)
+yr2 = data.frame(std.Year = 35)
+
+predict(captus.noncoding.ho.popmap.native.lm, newdata = yr2)
 
 
 
-
-
-
-
+# GEA loci -- script with GEA analysis 
 
 
 
