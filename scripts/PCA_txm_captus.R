@@ -73,7 +73,6 @@ ggsave("captus.collectionyear.pca.pdf", height = 6, width = 8)
 ggsave("captus.collectionyear.pca.png", height = 6, width = 8, dpi = 300)
 
 
-
 # pca colored by native geographic location
 pca.captus.collectionyear <- ggplot() +
   geom_point(pca.captus.df.inv, mapping = aes(x = Axis1, y = Axis2, color = "black", size = 3, alpha = 0.85)) +
@@ -94,16 +93,48 @@ ggsave("captus.collectionyear.pca.png", height = 6, width = 8, dpi = 300)
 
 
 
+################################ PCA of native samples and early invasion ##########################
+
+native.earlyinvasion.samples <- c("SRR29127726", "SRR29127733", "SRR29127740", "SRR29127741", "SRR29127747",
+                                  "SRR29127754", "SRR29127764", "SRR29127765", "SRR29127767", "SRR29127768",
+                                  "SRR29127769", "SRR29127770", "SRR29127771", "SRR29127772", "SRR29127773",
+                                  "SRR29127774", "SRR29127778", "SRR29127780", 
+                                  "SRR29127781", "SRR29127782", "SRR29127783", "SRR29127784", "SRR29127785",
+                                  "SRR29127786", "SRR29127787", "SRR29127788", "SRR29127789", "SRR29127793",
+                                  "SRR29127799")
+
+captus.native.earlyinvasion.genind <- captus.genind.nomissing[indNames(captus.genind.nomissing) %in% native.earlyinvasion.samples]
 
 
+pca.captus.native.earlyinvasion <- dudi.pca(captus.native.earlyinvasion.genind, scale = FALSE, scannf = FALSE, nf = 50)
 
+pve.captus.native.earlyinvasion <- (pca.captus.native.earlyinvasion$eig / sum(pca.captus.native.earlyinvasion$eig))*100
+pve.captus.native.earlyinvasion <- round(pve.captus.native.earlyinvasion, digits = 2)
 
+pca.captus.pve.captus.native.earlyinvasion.df <- pca.captus.native.earlyinvasion$li
+pca.captus.pve.captus.native.earlyinvasion.df$Ind <- rownames(pca.captus.pve.captus.native.earlyinvasion.df)
+pca.captus.pve.captus.native.earlyinvasion.df.popmap <- inner_join(pca.captus.pve.captus.native.earlyinvasion.df, popmap)
 
+pca.captus.pve.captus.native.earlyinvasion.invaded.df.popmap <- pca.captus.pve.captus.native.earlyinvasion.df.popmap %>% 
+  filter(Invaded == "Y")
+pca.captus.pve.captus.native.earlyinvasion.native.df.popmap <- pca.captus.pve.captus.native.earlyinvasion.df.popmap %>% 
+  filter(Invaded == "N")
 
-
-
-
-
+ggplot() +
+  geom_point(pca.captus.pve.captus.native.earlyinvasion.invaded.df.popmap, mapping = aes(x = Axis1, y = Axis2, color = as.numeric(Collection.Year)), size = 3, alpha = 0.85) +
+  geom_point(pca.captus.pve.captus.native.earlyinvasion.native.df.popmap, mapping = aes(x = Axis1, y = Axis2, color = Location), shape = 17, size = 3) +
+  #scale_color_viridis_c(limits = range(pca.captus.pve.captus.native.earlyinvasion.df.popmap$Collection.Year)) +
+  xlab(paste0("PC 1 (", pve.captus.native.earlyinvasion[1], "% variation explained)")) +
+  ylab(paste0("PC 2 (", pve.captus.native.earlyinvasion[2], "% variation explained)")) +
+  scale_color_manual(values = c("China" ="chartreuse3",
+                                "Japan" = "darkorchid3",
+                                "Indonesia" = "firebrick3",
+                                "Philippines" = "dodgerblue2",
+                                "Vietnam" = "gold1")) +
+  theme_bw() +
+  theme(text = element_text(size = 16)) +
+  
+  labs(color = "Collection Year")
 
 
 
