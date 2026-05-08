@@ -18,6 +18,7 @@ library(dartR)
 library(dartR.base)
 library(dplyr)
 library(adegenet)
+library(broom)
 
 ### Reading in / manipulating files
 
@@ -338,15 +339,6 @@ coding.gea.loci.in.arabidopsis <- inner_join(coding.gea.in.txm.captus.blast.subs
 
 
 
-
-
-
-
-
-
-
-
-
 ############################################## Calculating heterozygosity of candidate loci ##############################################
 
 
@@ -375,24 +367,43 @@ ggplot(data = Ho.GEA.popmap.year, mapping = aes(x = Collection.Year, y = Ho, col
   theme(text = element_text(size = 16))
 
 
-ggsave("captus.GEA.ho.ind.popmap.plot.pdf", width = 8, height =6)
-ggsave("captus.GEA.ho.ind.popmap.plot.png", width = 8, height =6, dpi = 300)
-
 
 ### Running statistical models
 
-Ho.GEA.lm <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = Ho.GEA.popmap.year)
+Ho.GEA.popmap.year$std.Year <- Ho.GEA.popmap.year$Collection.Year - min(Ho.GEA.popmap.year$Collection.Year)
+
+Ho.GEA.lm <- lm(Ho ~ std.Year + Invaded + std.Year:Invaded, data = Ho.GEA.popmap.year)
 summary(Ho.GEA.lm) 
 
-Ho.GEA.noint.lm <- lm(Ho ~ Collection.Year + Invaded, data = Ho.GEA.popmap.year)
-summary(Ho.GEA.noint.lm) 
+Ho.GEA.noint.lm <- lm(Ho ~ std.Year + Invaded, data = Ho.GEA.popmap.year)
+summary(Ho.GEA.noint.lm)
 
 
+r2_valu <- summary(Ho.GEA.noint.lm)$r.squared
+f <- summary(Ho.GEA.noint.lm)$fstatistic
+
+p_valu <- pf(f[1], f[2], f[3], lower.tail = F)
+
+stats_label <- paste0("Adj.R^2 == ", round(r2_valu, 5),
+                      "~~italic(P) == ", round(p_valu, 3))
+
+ggplot(data = Ho.GEA.popmap.year, mapping = aes(x = Collection.Year, y = Ho, color = Invaded, shape = Invaded)) + geom_point(size = 2) + 
+  geom_smooth(method = "lm", linetype = "dashed") + theme_bw() +
+  #stat_regline_equation(aes(label =  paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
+  annotate("text", 
+           x = 1945, y = 0.5, 
+           label = stats_label, 
+           parse = T, 
+           hjust = 1.1, vjust=1.5, size = 5) +
+  scale_shape_manual(values = c(17, 16)) +
+  xlab("Collection Year") +
+  scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154")) +
+  theme(text = element_text(size = 16), legend.position = "none") +
+  ggtitle("C) GEA Candidate Loci")
 
 
-
-
-
+ggsave("captus.GEA.ho.ind.popmap.plot.pdf", width = 8, height =6)
+ggsave("captus.GEA.ho.ind.popmap.plot.png", width = 8, height =6, dpi = 300)
 
 
 
@@ -402,89 +413,89 @@ summary(Ho.GEA.noint.lm)
 
 
 # Let's look at fixation now
-dosage_matrix <- as.matrix(gl.GEA) 
-dosage_matrix <- as.data.frame(dosage_matrix / 4)
-dosage_matrix$Ind <- rownames(dosage_matrix)
+#dosage_matrix <- as.matrix(gl.GEA) 
+#dosage_matrix <- as.data.frame(dosage_matrix / 4)
+#dosage_matrix$Ind <- rownames(dosage_matrix)
 
-popmap2 <- read.csv("popmap.csv")
+#popmap2 <- read.csv("popmap.csv")
 
-dosage_locale <- inner_join(dosage_matrix, popmap2)
-dosage_melt_locale <- melt(dosage_locale, id.vars = c("Ind", "Herbarium", "Voucher.Identifier", 
-                                                      "Location", "Approx..Latitude","Approx..Longitude", "Invaded", 
-                                                      "Temporal_Group", "Specimen.Comments", "Specimen.Link", "Collection.Year")) %>% 
-  dplyr::select(Ind, Invaded, Collection.Year, variable, value) %>% 
-  filter(variable != "total...bases")
+#dosage_locale <- inner_join(dosage_matrix, popmap2)
+#dosage_melt_locale <- melt(dosage_locale, id.vars = c("Ind", "Herbarium", "Voucher.Identifier", 
+#                                                      "Location", "Approx..Latitude","Approx..Longitude", "Invaded", 
+#                                                      "Temporal_Group", "Specimen.Comments", "Specimen.Link", "Collection.Year")) %>% 
+#  dplyr::select(Ind, Invaded, Collection.Year, variable, value) %>% 
+#  filter(variable != "total...bases")
 
-ggplot(data = dosage_melt_locale, mapping = aes(x = Collection.Year, y =value, color = Invaded)) + 
-  geom_point() + facet_wrap(~variable)
+#ggplot(data = dosage_melt_locale, mapping = aes(x = Collection.Year, y =value, color = Invaded)) + 
+#  geom_point() + facet_wrap(~variable)
 
 
 # Is there a significant trend toward fixation? 
-trend_results <- dosage_melt_locale %>%
-  filter(Invaded == "Y") %>% 
-  group_by(variable) %>%
-  summarize(
-    correlation = cor(Collection.Year, value, method = "spearman", use = "complete.obs"),
-    p_value = cor.test(Collection.Year, value, method = "spearman")$p.value
-  ) %>%
-  filter(!is.na(correlation)) %>%
-  arrange(desc(abs(correlation)))
+#trend_results <- dosage_melt_locale %>%
+#  filter(Invaded == "Y") %>% 
+#  group_by(variable) %>%
+#  summarize(
+#    correlation = cor(Collection.Year, value, method = "spearman", use = "complete.obs"),
+#    p_value = cor.test(Collection.Year, value, method = "spearman")$p.value
+#  ) %>%
+#  filter(!is.na(correlation)) %>%
+#  arrange(desc(abs(correlation)))
 
 
 # Pull out the loci with significant trends: 
-trend_results_sig <- filter(trend_results, p_value < 0.05) 
+#trend_results_sig <- filter(trend_results, p_value < 0.05) 
 
-allele_freq_changes_sig <- dosage_melt_locale[dosage_melt_locale$variable %in% trend_results_sig$variable, ]
-allele_freq_changes_sig <- na.omit(allele_freq_changes_sig)
+#allele_freq_changes_sig <- dosage_melt_locale[dosage_melt_locale$variable %in% trend_results_sig$variable, ]
+#allele_freq_changes_sig <- na.omit(allele_freq_changes_sig)
 
-ggplot(data = allele_freq_changes_sig, mapping = aes(x = Collection.Year, y = value, color = Invaded)) + 
-  geom_point() + geom_smooth(se = F, method = "lm") + facet_wrap(~variable) + theme_bw() + 
-  ylim(0,1) + xlab("Collection Year") + ylab("Allele Frequency")
+#ggplot(data = allele_freq_changes_sig, mapping = aes(x = Collection.Year, y = value, color = Invaded)) + 
+#  geom_point() + geom_smooth(se = F, method = "lm") + facet_wrap(~variable) + theme_bw() + 
+#  ylim(0,1) + xlab("Collection Year") + ylab("Allele Frequency")
 
 
 
 # Let's do this now with the temporal groupings:
 
-pop(LYJA.gid) <- popmap2$Temporal_Group
+#pop(LYJA.gid) <- popmap2$Temporal_Group
 
-GEA_loci <- LYJA.gid[loc = cand$snp_cleaned]
-ploidy(gl.GEA) <- 4
-gl.GEA <- gi2gl(GEA_loci)
-gl.compliance.check(gl.GEA)
+#GEA_loci <- LYJA.gid[loc = cand$snp_cleaned]
+#ploidy(gl.GEA) <- 4
+#gl.GEA <- gi2gl(GEA_loci)
+#gl.compliance.check(gl.GEA)
 
-gl.report.polyploid_heterozygosity(gl.GEA, error.bar = "SE") 
-Ho.GEA <- gl.report.polyploid_heterozygosity(gl.GEA, method = "pop")
+#gl.report.polyploid_heterozygosity(gl.GEA, error.bar = "SE") 
+#Ho.GEA <- gl.report.polyploid_heterozygosity(gl.GEA, method = "pop")
 
 
 ########### old analyses 
 
 
-sel <- cand$snp
-env <- cand$predictor
+#sel <- cand$snp
+#env <- cand$predictor
 
 #env[env=="bio12"] <- "blue"
-env[env=="bio14"] <- "darkgreen"
-env[env=="bio2"] <- "lightpink"
-env[env=="bio15"] <- "goldenrod"
-env[env=="bio13"] <- "lightblue"
-env[env=="bio1"] <- "lavender"
+#env[env=="bio14"] <- "darkgreen"
+#env[env=="bio2"] <- "lightpink"
+#env[env=="bio15"] <- "goldenrod"
+#env[env=="bio13"] <- "lightblue"
+#env[env=="bio1"] <- "lavender"
 
-col.pred <- rownames(LYJA.pRDA$CCA$v)
+#col.pred <- rownames(LYJA.pRDA$CCA$v)
 
-for(i in 1:length(sel)){
-  foo <- match(sel[i], col.pred)
-  col.pred[foo] <- env[i]
-}
+#for(i in 1:length(sel)){
+#  foo <- match(sel[i], col.pred)
+#  col.pred[foo] <- env[i]
+#}
 
-col.pred[grep("L", col.pred)] <- "grey"
-empty <- col.pred
+#col.pred[grep("L", col.pred)] <- "grey"
+#empty <- col.pred
 
-empty[grep("gray", empty)] <- rgb(0,1,0, alpha =0)
+#empty[grep("gray", empty)] <- rgb(0,1,0, alpha =0)
 
-empty.outline <- ifelse(empty =="gray", "gray", "gray32")
-bg <- c("blue", "darkgreen", "lightpink", "goldenrod", "lightblue", "lavender")
+#empty.outline <- ifelse(empty =="gray", "gray", "gray32")
+#bg <- c("blue", "darkgreen", "lightpink", "goldenrod", "lightblue", "lavender")
 
-plot(LYJA.pRDA, type = "n", scaling = 3, xlim = c(-0.75, 0.75), ylim=c(-1,1))
-points(LYJA.pRDA, display = "species", pch=21, cex = 1.3, col = "gray32", bg=col.pred, scaling =3)
-points(LYJA.pRDA, display = "species", pch=21, cex=1.3, col=empty.outline, bg=empty, scaling = 3)
-text(LYJA.pRDA, scaling = 3, display = "bp", col = "black", cex = 1.2)
+#plot(LYJA.pRDA, type = "n", scaling = 3, xlim = c(-0.75, 0.75), ylim=c(-1,1))
+#points(LYJA.pRDA, display = "species", pch=21, cex = 1.3, col = "gray32", bg=col.pred, scaling =3)
+#points(LYJA.pRDA, display = "species", pch=21, cex=1.3, col=empty.outline, bg=empty, scaling = 3)
+#text(LYJA.pRDA, scaling = 3, display = "bp", col = "black", cex = 1.2)
