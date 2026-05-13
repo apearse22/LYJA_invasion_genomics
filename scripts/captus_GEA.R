@@ -215,8 +215,8 @@ best.hit.txm.arabidopsis.blast <- txm.arabidopsis.blast %>%
 locNames(captus.invaded) <- gsub("_[0-9\\.].*", "", locNames(captus.invaded))
 
 
-captus.coding.genind <- captus.invaded[loc = locNames(captus.invaded) %in% best.hit.txm.captus.blast.05eval$qseqid.cleaned]
-captus.noncoding.genind <- captus.invaded[loc = !locNames(captus.invaded) %in% best.hit.txm.captus.blast.05eval$qseqid.cleaned]
+captus.coding.genind <- captus.invaded[loc = locNames(captus.invaded) %in% best.hit.txm.captus.blast.05eval$qseqid]
+captus.noncoding.genind <- captus.invaded[loc = !locNames(captus.invaded) %in% best.hit.txm.captus.blast.05eval$qseqid]
 
 
 cand.total.df.foo$snp.cleaned <- gsub("_[0-9].*", "", cand.total.df.foo$snp)
