@@ -65,9 +65,8 @@ pca.captus.collectionyear <- ggplot() +
   ylab(paste0("PC 2 (", pve.captus[2], "% variation explained)")) +
   theme_bw() +
   theme(text = element_text(size = 16)) +
-
   labs(color = "Collection Year") +
-  ggtitle("CAPTUS Reference")
+  ggtitle("")
 
 ggsave("captus.collectionyear.pca.pdf", height = 6, width = 8)
 ggsave("captus.collectionyear.pca.png", height = 6, width = 8, dpi = 300)
@@ -117,36 +116,34 @@ pca.captus.pve.captus.native.earlyinvasion.df.popmap <- inner_join(pca.captus.pv
 
 pca.captus.pve.captus.native.earlyinvasion.invaded.df.popmap <- pca.captus.pve.captus.native.earlyinvasion.df.popmap %>% 
   filter(Invaded == "Y")
+
 pca.captus.pve.captus.native.earlyinvasion.native.df.popmap <- pca.captus.pve.captus.native.earlyinvasion.df.popmap %>% 
   filter(Invaded == "N")
 
+
+
 ggplot() +
-  geom_point(pca.captus.pve.captus.native.earlyinvasion.invaded.df.popmap, mapping = aes(x = Axis1, y = Axis2, color = as.numeric(Collection.Year)), size = 3, alpha = 0.85) +
-  geom_point(pca.captus.pve.captus.native.earlyinvasion.native.df.popmap, mapping = aes(x = Axis1, y = Axis2, color = Location), shape = 17, size = 3) +
-  #scale_color_viridis_c(limits = range(pca.captus.pve.captus.native.earlyinvasion.df.popmap$Collection.Year)) +
-  xlab(paste0("PC 1 (", pve.captus.native.earlyinvasion[1], "% variation explained)")) +
-  ylab(paste0("PC 2 (", pve.captus.native.earlyinvasion[2], "% variation explained)")) +
+  geom_point(pca.captus.pve.captus.native.earlyinvasion.invaded.df.popmap, 
+             mapping = aes(x = Axis1, y = Axis2, color = Location), size = 3, alpha = 0.85, shape = 19) +
+  
+  geom_point(pca.captus.pve.captus.native.earlyinvasion.native.df.popmap, 
+             mapping = aes(x = Axis1, y = Axis2, color = Location), shape = 17, size = 3) +
+  
   scale_color_manual(values = c("China" ="chartreuse3",
                                 "Japan" = "darkorchid3",
                                 "Indonesia" = "firebrick3",
                                 "Philippines" = "dodgerblue2",
-                                "Vietnam" = "gold1")) +
-  theme_bw() +
-  theme(text = element_text(size = 16)) +
+                                "Vietnam" = "gold1",
+                                "Florida" = "black", "Louisiana" = "black",
+                                "Mississippi" = "black", "Texas" = "black" ),
+                     name = "Location") +
   
-  labs(color = "Collection Year")
+  xlab(paste0("PC 1 (", pve.captus.native.earlyinvasion[1], "% variation explained)")) +
+  ylab(paste0("PC 2 (", pve.captus.native.earlyinvasion[2], "% variation explained)")) + theme_bw() +
+  theme(text = element_text(size = 16))
 
 
-
-
-
-
-
-
-
-
-
-#ggsave("captus.collectionyear.pca.pdf", height = 6, width = 8)
+ggsave("captus.collectionyear_earlyInv.pca.pdf", height = 6, width = 8)
 
 # Location
 

@@ -79,7 +79,7 @@ PCA.plot <- ggplot(impute.PCA.df.popmap, aes(Axis1, Axis2, color = Location)) +
   theme_bw()
 
 
-##################################################### RDA ################## - ask jessie about this part
+##################################################### RDA ################## 
 
 rda <- rda(captus.impute ~., envs2, scale = T) # Calculating redundancy analysis of genotypic data against bioclim variables
 summary(eigenvals(rda, model = "constrained")) # summarizing the eigenvalues from our redundancy analysis
@@ -201,8 +201,6 @@ best.hit.txm.arabidopsis.blast <- txm.arabidopsis.blast %>%
   arrange(evalue) %>% 
   filter(row_number() == 1)
 
-# at some point, get best hit per locus 
-
 
 ################################# creating / subsetting genind objects ########################
 
@@ -307,15 +305,15 @@ ggplot(piedata, aes(x="", y=no.snps, fill=envs.predictors)) +
 
 ### Descending bar plot
 ggplot(data = piedata, aes(x = reorder(envs.predictors, -no.snps), y = no.snps, fill = envs.predictors)) + 
-  geom_col() + 
+  geom_col(width = 0.7) + 
   xlab("Bioclimatic Variable") +
-  ylab("Number of Candidate SNPs") +
+  ylab("# of Candidate SNPs") +
   scale_fill_manual(values = c("#0074D9", "#B10DC9", "#85144b", "#FF4136", "#FF851B")) + 
-  theme_bw()+ 
+  theme_bw(base_size = 20)+ 
   theme(legend.position = "none")
 
-ggsave("GEA_descending_bars.pdf", height = 4, width = 6)
-ggsave("GEA_descending_bars.png", height = 4, width = 6, dpi = 300)
+ggsave("GEA_descending_bars.pdf", height = 4, width = 5)
+ggsave("GEA_descending_bars.png", height = 3, width = 4, dpi = 300)
 
 
 ###################################### finding functions of arabidopsis genes in coding environmental loci
@@ -359,13 +357,14 @@ Ho.GEA.popmap.year <- inner_join(Ho.GEA, si)
 
 ggplot(data = Ho.GEA.popmap.year, mapping = aes(x = Collection.Year, y = Ho, color = Invaded, shape = Invaded)) + geom_point(size = 2) + 
   geom_smooth(method = "lm") + theme_bw() +
-  stat_regline_equation(aes(label =  paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
+  #stat_regline_equation(aes(label =  paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
   scale_shape_manual(values = c(17, 16)) +
   xlab("Collection Year") +
   scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154")) +
   ggtitle("CAPTUS Reference - GEA Loci") +
   theme(text = element_text(size = 16))
 
+ggsave("gea_cand_for_poster.png", dpi = 300, height = 5, width = 6)
 
 
 ### Running statistical models
@@ -404,98 +403,3 @@ ggplot(data = Ho.GEA.popmap.year, mapping = aes(x = Collection.Year, y = Ho, col
 
 ggsave("captus.GEA.ho.ind.popmap.plot.pdf", width = 8, height =6)
 ggsave("captus.GEA.ho.ind.popmap.plot.png", width = 8, height =6, dpi = 300)
-
-
-
-
-
-
-
-
-# Let's look at fixation now
-#dosage_matrix <- as.matrix(gl.GEA) 
-#dosage_matrix <- as.data.frame(dosage_matrix / 4)
-#dosage_matrix$Ind <- rownames(dosage_matrix)
-
-#popmap2 <- read.csv("popmap.csv")
-
-#dosage_locale <- inner_join(dosage_matrix, popmap2)
-#dosage_melt_locale <- melt(dosage_locale, id.vars = c("Ind", "Herbarium", "Voucher.Identifier", 
-#                                                      "Location", "Approx..Latitude","Approx..Longitude", "Invaded", 
-#                                                      "Temporal_Group", "Specimen.Comments", "Specimen.Link", "Collection.Year")) %>% 
-#  dplyr::select(Ind, Invaded, Collection.Year, variable, value) %>% 
-#  filter(variable != "total...bases")
-
-#ggplot(data = dosage_melt_locale, mapping = aes(x = Collection.Year, y =value, color = Invaded)) + 
-#  geom_point() + facet_wrap(~variable)
-
-
-# Is there a significant trend toward fixation? 
-#trend_results <- dosage_melt_locale %>%
-#  filter(Invaded == "Y") %>% 
-#  group_by(variable) %>%
-#  summarize(
-#    correlation = cor(Collection.Year, value, method = "spearman", use = "complete.obs"),
-#    p_value = cor.test(Collection.Year, value, method = "spearman")$p.value
-#  ) %>%
-#  filter(!is.na(correlation)) %>%
-#  arrange(desc(abs(correlation)))
-
-
-# Pull out the loci with significant trends: 
-#trend_results_sig <- filter(trend_results, p_value < 0.05) 
-
-#allele_freq_changes_sig <- dosage_melt_locale[dosage_melt_locale$variable %in% trend_results_sig$variable, ]
-#allele_freq_changes_sig <- na.omit(allele_freq_changes_sig)
-
-#ggplot(data = allele_freq_changes_sig, mapping = aes(x = Collection.Year, y = value, color = Invaded)) + 
-#  geom_point() + geom_smooth(se = F, method = "lm") + facet_wrap(~variable) + theme_bw() + 
-#  ylim(0,1) + xlab("Collection Year") + ylab("Allele Frequency")
-
-
-
-# Let's do this now with the temporal groupings:
-
-#pop(LYJA.gid) <- popmap2$Temporal_Group
-
-#GEA_loci <- LYJA.gid[loc = cand$snp_cleaned]
-#ploidy(gl.GEA) <- 4
-#gl.GEA <- gi2gl(GEA_loci)
-#gl.compliance.check(gl.GEA)
-
-#gl.report.polyploid_heterozygosity(gl.GEA, error.bar = "SE") 
-#Ho.GEA <- gl.report.polyploid_heterozygosity(gl.GEA, method = "pop")
-
-
-########### old analyses 
-
-
-#sel <- cand$snp
-#env <- cand$predictor
-
-#env[env=="bio12"] <- "blue"
-#env[env=="bio14"] <- "darkgreen"
-#env[env=="bio2"] <- "lightpink"
-#env[env=="bio15"] <- "goldenrod"
-#env[env=="bio13"] <- "lightblue"
-#env[env=="bio1"] <- "lavender"
-
-#col.pred <- rownames(LYJA.pRDA$CCA$v)
-
-#for(i in 1:length(sel)){
-#  foo <- match(sel[i], col.pred)
-#  col.pred[foo] <- env[i]
-#}
-
-#col.pred[grep("L", col.pred)] <- "grey"
-#empty <- col.pred
-
-#empty[grep("gray", empty)] <- rgb(0,1,0, alpha =0)
-
-#empty.outline <- ifelse(empty =="gray", "gray", "gray32")
-#bg <- c("blue", "darkgreen", "lightpink", "goldenrod", "lightblue", "lavender")
-
-#plot(LYJA.pRDA, type = "n", scaling = 3, xlim = c(-0.75, 0.75), ylim=c(-1,1))
-#points(LYJA.pRDA, display = "species", pch=21, cex = 1.3, col = "gray32", bg=col.pred, scaling =3)
-#points(LYJA.pRDA, display = "species", pch=21, cex=1.3, col=empty.outline, bg=empty, scaling = 3)
-#text(LYJA.pRDA, scaling = 3, display = "bp", col = "black", cex = 1.2)

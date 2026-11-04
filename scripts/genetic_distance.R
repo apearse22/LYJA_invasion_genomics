@@ -226,6 +226,43 @@ captus.nat.temp.plot <- ggplot(captus.nat.temp.plot.df, aes(TempDist, GenDist)) 
 #ggsave("invaded.captus.temp.pdf", plot = captus.inv.temp.plot, height = 7, width = 7)
 #ggsave("native.captus.temp.pdf", plot = captus.nat.temp.plot, height = 7, width = 7)
 
+######################### Genetic distance between native range samples and invaded range samples by year #####################
+
+captus.gen.dist.all <- prevosti.dist(captus.genind)
+captus.gen.dist.all.mat <- as.matrix(captus.gen.dist.all)
+#captus.gen.dist.all.mat[upper.tri(captus.gen.dist.all.mat, diag = FALSE)] <- NA
+dimnames(captus.gen.dist.all.mat) <- list(rownames(captus.gen.dist.all.mat), colnames(captus.gen.dist.all.mat))
+captus.gen.dist.all.df <- as.data.frame(as.table(captus.gen.dist.all.mat))
+captus.gen.dist.all.df <- na.omit(captus.gen.dist.all.df)
+
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
+captus.gen.dist.all.df <- captus.gen.dist.all.df %>% 
+  mutate(range1 = case_when(
+    Var1 %in% samples.native ~ "native",
+    Var1 %!in% samples.native ~ "invaded",
+  )) %>% 
+  mutate(range2 = case_when (
+    Var2 %in% samples.native ~ "native", 
+    Var2 %!in% samples.native ~ "invaded",
+  )) %>% 
+  filter(Freq != 0) |> 
+  filter(range2== "native") |> 
+  filter(range1 == "invaded") |> 
+  group_by(Var1) |> 
+  summarize(median = median(Freq))
+
+popmap.inv.years$Var1 <- rownames(popmap.inv.years)
+
+captus.gen.dist.all.df.yr <- full_join(popmap.inv.years, captus.gen.dist.all.df)
+  
+
+ggplot(data = captus.gen.dist.all.df.yr, mapping =aes(x = Collection.Year, y = median)) + geom_point() + 
+  theme_bw() + xlab("Collection Year") + ylab("Median Genetic Distance to Native Range Samples") + 
+  geom_smooth(method = "lm")
+
+test <- lm(median ~ Collection.Year, data = captus.gen.dist.all.df.yr)
+summary(test)
 
 ######################################### Genetic distance of plastid haplotypes #############################################
 
@@ -286,7 +323,37 @@ captus.cphaps.plot <- ggplot(captus.inv.df, aes(x = haplotype_div, y = Freq, fil
 wilcox.results <- wilcox.test(Freq ~ haplotype_div, data = captus.inv.df)
 
 
+# We actually want to do this - get the median genetic distance for each comparison to other 46 indiiduals
 
+median_captus.inv.df <- captus.inv.df %>% 
+  filter(plastid_haplotype_1 == 1 & plastid_haplotype_2 ==1) %>%
+  group_by(Var1) %>% 
+  summarize(median = median(Freq))
+
+median_captus.inv.df_hap2 <- captus.inv.df %>% 
+  filter(plastid_haplotype_1 == 2 & plastid_haplotype_2 ==1) %>%
+  group_by(Var1) %>% 
+  summarize(median = median(Freq))
+
+median_captus.inv.df_hap3 <- captus.inv.df %>% 
+  filter(plastid_haplotype_1 == 3 & plastid_haplotype_2 ==1) %>%
+  group_by(Var1) %>% 
+  summarize(median = median(Freq))
+
+
+ggplot() + geom_histogram(data = median_captus.inv.df, mapping = aes(x = median), fill = "black") + 
+  theme_bw() + ylim(0, 8) + xlim(0, 0.07) +
+  geom_vline(data = median_captus.inv.df_hap3, mapping = aes(xintercept = median), color = "blue4") + 
+  geom_vline(data = median_captus.inv.df_hap2, mapping = aes(xintercept = median), color = "firebrick") 
+
+ggsave("plastid_distance.png", dpi = 600, width = 7, height = 5)
+
+dist_vect <- median_captus.inv.df$median
+ecdf <- ecdf(dist_vect)
+percentile <- ecdf(median_captus.inv.df_hap3$median[2])
+
+p_value <- mean(dist_vect >= median_captus.inv.df_hap3$median[2])
+print(paste("Empirical p-value:", p_value))
 
 
 

@@ -23,7 +23,7 @@ library(patchwork)
 ### Reading in files
 
 lyja_si <- read.csv("files/lyja_si_coordinates.csv")
-clim_list <- list.files("files/GEA_files/bioclim/wc2.1_30s_bio/", pattern=".tif", full.names = TRUE)
+clim_list <- list.files("../../../PUBLICATIONS/EUVI/climate/wc2.1_30s/", pattern=".tif", full.names = TRUE)
 
 
 ################################ Cleaning dataframes / generating coordinates ###################################
@@ -354,7 +354,7 @@ bio14_plot <- ggplot() +
   scale_y_continuous(limits = c(25, 37), expand = c(0,0)) +
   xlab('Approximate Longitude') +
   ylab('Approximate Latitude') +
-  ggtitle("Bioclim 14: Precipitation of Driest Month (mm)") +
+  #ggtitle("Bioclim 14: Precipitation of Driest Month (mm)") +
   labs(fill = "Precipitation of Driest Month (mm)")
   
 

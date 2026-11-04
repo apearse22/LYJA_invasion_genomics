@@ -82,6 +82,8 @@ captus.coding.ho.popmap.plot <- ggplot(captus.coding.ho.popmap, aes(Collection.Y
   scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154")) +
   theme(text = element_text(size = 16))
 
+ggsave("coding_for_poster.png", dpi = 600, height = 4, width = 6)
+
 
 ### non-coding
 
@@ -101,7 +103,7 @@ captus.noncoding.ho.popmap.plot <- ggplot(captus.noncoding.ho.popmap, aes(Collec
   theme(text = element_text(size = 16)) #+ xlim(1940, 2015)
 
 
-
+ggsave("noncoding_for_poster.png", dpi = 600, height = 4, width = 6)
 
 
 
@@ -214,109 +216,3 @@ ggsave("captus.noncoding.ho.plot.png",  height = 6, width = 8, dpi = 300)
 
 # GEA loci -- see script with GEA analysis 
 
-
-
-
-
-############################################# old analyses after this point! ###################################
-
-
-####################### Transcriptome analyses #########################
-
-#transcriptome.vcf <- read.vcfR("files/txm.50missing.CTmarked.recalc.maf0.05.thinned.vcf")
-
-# Transcriptome
-
-#transcriptome.genind <- vcfR2genind(transcriptome.vcf, ploidy = 4)
-#pop(transcriptome.genind) <- popmap$Temporal_Group
-
-#transcriptome.gl <- gi2gl(transcriptome.genind) # this changes the ploidy to 2 rather than keep 4 from genind object
-#ploidy(transcriptome.gl) <- 4 # set the ploidy to 4
-
-#gl.compliance.check(transcriptome.gl)
-
-#transcriptome.ho.ind <-  gl.report.polyploid_heterozygosity(transcriptome.gl, method = "ind", error.bar = "SE") 
-
-### Transcriptome
-
-#colnames(transcriptome.ho.ind) <- c("Ind", "Ho", "f.hom.ref", "f.hom.alt", "n.Loc")
-
-#transcriptome.ho.ind.popmap <- inner_join(transcriptome.ho.ind, popmap)
-
-#transcriptome.ho.ind.popmap.plot <- ggplot(transcriptome.ho.ind.popmap, aes(x = Collection.Year, y = Ho, color = Invaded)) + 
-#  geom_point() + 
-#  geom_smooth(method = "lm") + 
-#  theme_bw() +
-#  stat_regline_equation(aes(label =  paste(after_stat(eq.label), after_stat(rr.label), sep = "*\", \"*"))) +
-#  ggtitle("Transcriptome Reference - All Loci") +
-#  xlab("Collection Year") +
-#  scale_color_manual(values = c("Y" = "#21918c", "N" = "#440154"))
-
-#ggsave("transcriptome.ho.ind.popmap.plot.pdf", transcriptome.ho.ind.popmap.plot, height = 6, width = 8)
-#ggsave("transcriptome.ho.ind.popmap.plot.png", transcriptome.ho.ind.popmap.plot, height = 6, width = 8, dpi = 300)
-
-#transcriptome.ho.popmetric <- gl.report.polyploid_heterozygosity(transcriptome.gl, method = "pop", error.bar = "SE") # transcriptome
-
-### Transcriptome
-
-#transcriptome.ho.popmetric.df <- data.frame(Temporal_Group = c("Early Invasion", "Mid Invasion", "Late Invasion", "Native"),
-#                                            Obs_Ho = transcriptome.ho.popmetric$Ho)
-
-#transcriptome.popmetric.plot.df <-  ggplot(transcriptome.ho.popmetric.df, aes(Temporal_Group, y = Obs_Ho, fill = Temporal_Group)) + 
-#  geom_col() +
-#  theme_bw() +
-#  ggtitle("Transcriptome Population (Temporal Group) Observed Heterozygosity") +
-#  scale_fill_manual(values = c ("Native" = "dodgerblue2", "Early Invasion" = "pink",
-#                                "Mid Invasion" = "deeppink2", "Late Invasion" = "firebrick4")) +
-#  xlab("Temporal Group") +
-#  ylab("Observed Heterozygosity") 
-
-### Transcriptome
-
-# Model with Interactions
-
-#transcriptome.Ho.lm.int <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = transcriptome.ho.ind.popmap)
-#summary(transcriptome.Ho.lm.int)
-
-
-# Model without Interactions
-
-#transcriptome.Ho.lm.noint <- lm(Ho ~ Collection.Year + Invaded, data = transcriptome.ho.ind.popmap)
-#summary(transcriptome.Ho.lm.noint) 
-
-
-############################################# Calculating population (temporal group) level heterozygosity ###########################
-
-#captus.ho.popmetric <- gl.report.polyploid_heterozygosity(captus.gl, method = "pop", error.bar = "SE") # CAPTUS
-
-############### Plotting population level heterozygosity 
-
-#captus.ho.popmetric.df <- data.frame(Temporal_Group = c("Early Invasion", "Mid Invasion", "Late Invasion", "Native"),
-#                                     Obs_Ho = captus.ho.popmetric$Ho)
-
-#captus.popmetric.plot.df <-  ggplot(captus.ho.popmetric.df, aes(Temporal_Group, y = Obs_Ho, fill = Temporal_Group)) + 
-#  geom_col() +
-#  theme_bw() +
-#  ggtitle("CAPTUS Population (Temporal Group) Observed Heterozygosity") +
-#  scale_fill_manual(values = c ("Native" = "dodgerblue2", "Early Invasion" = "pink",
-#                                "Mid Invasion" = "deeppink2", "Late Invasion" = "firebrick4")) +
-#  xlab("Temporal Group") +
-#  ylab("Observed Heterozygosity")
-
-
-### calculating captus statistical models
-
-
-##### Conducting statistical analyses
-
-### CAPTUS
-
-# Model with Interactions
-
-#captus.Ho.lm.int <- lm(Ho ~ Collection.Year + Invaded + Collection.Year:Invaded, data = captus.ho.ind.popmap)
-#summary(captus.Ho.lm.int)
-
-# Model without Interactions
-
-#captus.Ho.lm.noint <- lm(Ho ~ Collection.Year + Invaded, data = captus.ho.ind.popmap)
-#summary(captus.Ho.lm.noint) 
